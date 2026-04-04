@@ -245,13 +245,13 @@ export default function Home() {
 
   // ホームタブ
   const HomeTab = () => (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    <div className="flex flex-col flex-1 overflow-hidden min-h-0">
       {/* 統計カード 2×2 */}
       <div className="grid grid-cols-2 gap-3 px-4 pt-4 pb-2 flex-shrink-0">
-        <StatCard label="4科偏差値" value="62.4" sub="前回比 +1.2" color="#e8f0fe" textColor={NAVY} />
-        <StatCard label="第一志望判定" value="B判定" sub="合格率 58%" color="#e6f4ea" textColor="#137333" />
-        <StatCard label="取込ファイル数" value="14" sub="最終: 2日前" color="#fef7e0" textColor="#b45309" />
-        <StatCard label="最優先弱点" value="速さ・比" sub="正答率 38%" color="#fce8e6" textColor="#c5221f" />
+        <StatCard label="4科偏差値" value="—" sub="データなし" color="#e8f0fe" textColor={NAVY} />
+        <StatCard label="第一志望判定" value="—" sub="データなし" color="#e6f4ea" textColor="#137333" />
+        <StatCard label="取込ファイル数" value="—" sub="データなし" color="#fef7e0" textColor="#b45309" />
+        <StatCard label="最優先弱点" value="—" sub="データなし" color="#fce8e6" textColor="#c5221f" />
       </div>
 
       {/* AIチャットヘッダー */}
@@ -269,7 +269,7 @@ export default function Home() {
       </div>
 
       {/* メッセージ一覧 */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-2 bg-white">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3 flex flex-col gap-2 bg-white">
         {messages.length === 0 && (
           <div className="flex justify-start">
             <div
@@ -575,13 +575,13 @@ export default function Home() {
 
       {/* ══ PC レイアウト（641px〜）══════════════════════════ */}
       <div
-        className="hidden sm:flex mx-auto"
-        style={{ maxWidth: 1024, minHeight: "100dvh" }}
+        className="hidden sm:flex mx-auto overflow-hidden"
+        style={{ maxWidth: 1024, height: "100dvh" }}
       >
         {/* サイドナビ */}
         <aside
-          className="w-56 flex-shrink-0 flex flex-col bg-white border-r border-gray-200"
-          style={{ minHeight: "100dvh" }}
+          className="w-56 flex-shrink-0 flex flex-col bg-white border-r border-gray-200 overflow-y-auto"
+          style={{ height: "100dvh" }}
         >
           {/* ロゴ */}
           <div
@@ -633,7 +633,7 @@ export default function Home() {
         </aside>
 
         {/* コンテンツエリア */}
-        <div className="flex-1 flex flex-col overflow-hidden" style={{ height: "100dvh" }}>
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
           {tabContent[activeTab]}
         </div>
       </div>
