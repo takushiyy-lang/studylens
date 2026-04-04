@@ -9,6 +9,7 @@ type Message = {
 };
 
 type Tab = "home" | "data" | "weakness" | "routine" | "trend" | "school";
+type ImportStatus = "idle" | "loading" | "success" | "error";
 
 const QUICK_QUESTIONS = [
   "国語の読解力を上げるには？",
@@ -110,6 +111,9 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [driveUrl, setDriveUrl] = useState("");
+  const [importStatus, setImportStatus] = useState<ImportStatus>("idle");
+  const [importProgress, setImportProgress] = useState(0);
+  const [importedFiles, setImportedFiles] = useState<string[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -139,6 +143,34 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleImport() {
+    if (!driveUrl.trim()) return;
+    if (!driveUrl.includes("drive.google.com")) {
+      setImportStatus("error");
+      return;
+    }
+    setImportStatus("loading");
+    setImportProgress(0);
+
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.random() * 12 + 5;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        setImportProgress(100);
+        setTimeout(() => {
+          setImportStatus("success");
+          const date = new Date().toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
+          setImportedFiles((prev) => [...prev, `Driveフォルダ_${date}`]);
+          setDriveUrl("");
+        }, 400);
+      } else {
+        setImportProgress(Math.round(progress));
+      }
+    }, 180);
   }
 
   // ── ローディング画面 ─────────────────────────────────────
@@ -198,6 +230,16 @@ export default function Home() {
 
   const userName = session.user?.name ?? "ユーザー";
   const avatarChar = userName.slice(-1);
+
+  // ── タブ定義 ─────────────────────────────────────────────
+  const tabs: { id: Tab; label: string; Icon: React.FC<{ active: boolean }> }[] = [
+    { id: "home", label: "ホーム", Icon: HomeIcon },
+    { id: "data", label: "データ", Icon: DataIcon },
+    { id: "weakness", label: "弱点", Icon: WeaknessIcon },
+    { id: "routine", label: "ルーティン", Icon: RoutineIcon },
+    { id: "trend", label: "推移", Icon: TrendIcon },
+    { id: "school", label: "志望校", Icon: SchoolIcon },
+  ];
 
   // ── タブコンテンツ ─────────────────────────────────────
 
@@ -357,28 +399,100 @@ export default function Home() {
         <input
           type="url"
           value={driveUrl}
-          onChange={(e) => setDriveUrl(e.target.value)}
+          onChange={(e) => {
+            setDriveUrl(e.target.value);
+            if (importStatus === "error") setImportStatus("idle");
+          }}
           placeholder="https://drive.google.com/drive/folders/..."
-          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-300"
+          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-300 disabled:bg-gray-50"
+          disabled={importStatus === "loading"}
         />
+
+        {/* プログレスバー */}
+        {importStatus === "loading" && (
+          <div>
+            <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+              <span>ファイルを取り込んでいます...</span>
+              <span>{importProgress}%</span>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+              <div
+                className="h-2 rounded-full transition-all duration-300"
+                style={{ width: `${importProgress}%`, backgroundColor: NAVY }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 完了メッセージ */}
+        {importStatus === "success" && (
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ backgroundColor: "#f0fdf4" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#16a34a">
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+            </svg>
+            <span className="text-sm font-medium" style={{ color: "#15803d" }}>取り込みが完了しました</span>
+          </div>
+        )}
+
+        {/* エラーメッセージ */}
+        {importStatus === "error" && (
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ backgroundColor: "#fef2f2" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#dc2626">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+            </svg>
+            <span className="text-sm" style={{ color: "#dc2626" }}>Google DriveのURLを正しく入力してください</span>
+          </div>
+        )}
+
         <button
-          className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-opacity hover:opacity-90"
+          onClick={handleImport}
+          disabled={importStatus === "loading" || !driveUrl.trim()}
+          className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{ backgroundColor: NAVY }}
         >
-          学習データを取り込む
+          {importStatus === "loading" ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg
+                className="animate-spin"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth="2.5"
+              >
+                <circle cx="12" cy="12" r="9" strokeOpacity="0.3" />
+                <path d="M21 12a9 9 0 00-9-9" strokeLinecap="round" />
+              </svg>
+              取り込み中...
+            </span>
+          ) : "学習データを取り込む"}
         </button>
       </div>
+
+      {/* 取込済みファイル */}
       <div className="bg-white rounded-2xl shadow-sm p-5">
         <p className="text-sm font-semibold text-gray-800 mb-3">取込済みファイル</p>
-        {["国語テスト_4月.pdf", "算数模試_3月.pdf", "理科プリント_2月.pdf"].map((f, i) => (
-          <div key={i} className="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0">
-            <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <span className="text-red-600 text-xs font-bold">PDF</span>
+        {importedFiles.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">取込済みファイルはありません</p>
+        ) : (
+          importedFiles.map((f, i) => (
+            <div key={i} className="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0">
+              <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg width="16" height="16" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H10.55C10.55 57.65 9.8 60 9.8 62.5c0 1.5.3 3.05.8 4.35z" fill="#0066da" />
+                  <path d="M43.65 25L29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3L6.5 37.55c-.8 1.4-1.2 2.95-1.2 4.5H27.4z" fill="#00ac47" />
+                  <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L80.8 66c.5-1.3.8-2.75.8-4.25 0-1.5-.3-2.95-.8-4.35H59.9l4.35 8.5z" fill="#ea4335" />
+                  <path d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d" />
+                  <path d="M59.9 53H27.4L13.65 76.8c1.35.8 2.9 1.2 4.5 1.2h50c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc" />
+                  <path d="M73.4 37.55L57.3 9.8c-.8-1.4-1.95-2.5-3.3-3.3L40.25 29.75 59.9 53h20.95c0-1.5-.4-3.05-1.2-4.5z" fill="#ffba00" />
+                </svg>
+              </div>
+              <span className="text-sm text-gray-700 flex-1">{f}</span>
+              <span className="text-xs text-gray-400">取込済</span>
             </div>
-            <span className="text-sm text-gray-700 flex-1">{f}</span>
-            <span className="text-xs text-gray-400">取込済</span>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
@@ -498,7 +612,6 @@ export default function Home() {
         <div className="bg-white rounded-2xl shadow-sm p-5">
           <p className="text-sm font-semibold text-gray-800 mb-4">4科偏差値の推移（直近10回）</p>
           <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
-            {/* グリッド線 */}
             {[50, 55, 60, 65].map((v) => {
               const y = padY + innerH - ((v - min) / range) * innerH;
               return (
@@ -508,7 +621,6 @@ export default function Home() {
                 </g>
               );
             })}
-            {/* 折れ線 */}
             <polyline
               points={points.join(" ")}
               fill="none"
@@ -516,7 +628,6 @@ export default function Home() {
               strokeWidth="2.5"
               strokeLinejoin="round"
             />
-            {/* データ点 */}
             {data.map((v, i) => {
               const x = padX + (i / (data.length - 1)) * innerW;
               const y = padY + innerH - ((v - min) / range) * innerH;
@@ -588,76 +699,132 @@ export default function Home() {
     school: <SchoolTab />,
   };
 
-  const tabs: { id: Tab; label: string; Icon: React.FC<{ active: boolean }> }[] = [
-    { id: "home", label: "ホーム", Icon: HomeIcon },
-    { id: "data", label: "データ", Icon: DataIcon },
-    { id: "weakness", label: "弱点", Icon: WeaknessIcon },
-    { id: "routine", label: "ルーティン", Icon: RoutineIcon },
-    { id: "trend", label: "推移", Icon: TrendIcon },
-    { id: "school", label: "志望校", Icon: SchoolIcon },
-  ];
-
+  // ── レイアウト ───────────────────────────────────────────
   return (
-    <div
-      className="flex flex-col mx-auto"
-      style={{ maxWidth: 480, minHeight: "100dvh", background: BG }}
-    >
-      {/* ヘッダー */}
-      <header
-        className="flex items-center justify-between px-4 py-3 flex-shrink-0"
-        style={{ backgroundColor: NAVY }}
-      >
-        {/* ロゴ */}
-        <div className="flex items-center gap-2">
-          <BarChartIcon />
-          <span className="text-white font-bold text-lg tracking-tight">StudyLens</span>
-        </div>
-        {/* ユーザー情報 */}
-        <div className="flex items-center gap-2">
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center bg-white/20 text-white text-sm font-bold"
-          >
-            {avatarChar}
-          </div>
-          <span className="text-white text-sm hidden sm:block">{userName}</span>
-          <button
-            onClick={() => signOut()}
-            className="text-white/80 text-xs border border-white/30 rounded-full px-2.5 py-1 hover:bg-white/10 transition-colors ml-1"
-          >
-            ログアウト
-          </button>
-        </div>
-      </header>
+    <div style={{ background: BG, minHeight: "100dvh" }}>
 
-      {/* タブコンテンツ */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {tabContent[activeTab]}
+      {/* ══ PC レイアウト（641px〜）══════════════════════════ */}
+      <div
+        className="hidden sm:flex mx-auto"
+        style={{ maxWidth: 1024, minHeight: "100dvh" }}
+      >
+        {/* サイドナビ */}
+        <aside
+          className="w-56 flex-shrink-0 flex flex-col bg-white border-r border-gray-200"
+          style={{ minHeight: "100dvh" }}
+        >
+          {/* ロゴ */}
+          <div
+            className="flex items-center gap-2 px-5 py-4 flex-shrink-0"
+            style={{ backgroundColor: NAVY }}
+          >
+            <BarChartIcon />
+            <span className="text-white font-bold text-lg tracking-tight">StudyLens</span>
+          </div>
+
+          {/* ナビ項目 */}
+          <nav className="flex-1 py-2">
+            {tabs.map(({ id, label, Icon }) => {
+              const active = activeTab === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className="w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors hover:bg-gray-50"
+                  style={{
+                    color: active ? NAVY : "#6b7280",
+                    backgroundColor: active ? "#e8f0fe" : "transparent",
+                    borderRight: active ? `3px solid ${NAVY}` : "3px solid transparent",
+                  }}
+                >
+                  <Icon active={active} />
+                  {label}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* ユーザー情報 */}
+          <div className="p-4 border-t border-gray-100 flex items-center gap-3">
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center bg-white/20 text-white text-sm font-bold flex-shrink-0"
+              style={{ backgroundColor: NAVY }}
+            >
+              {avatarChar}
+            </div>
+            <span className="text-sm text-gray-700 flex-1 truncate">{userName}</span>
+            <button
+              onClick={() => signOut()}
+              className="text-gray-400 text-xs hover:text-gray-600 transition-colors flex-shrink-0"
+            >
+              ログアウト
+            </button>
+          </div>
+        </aside>
+
+        {/* コンテンツエリア */}
+        <div className="flex-1 flex flex-col overflow-hidden" style={{ height: "100dvh" }}>
+          {tabContent[activeTab]}
+        </div>
       </div>
 
-      {/* ボトムナビ */}
-      <nav
-        className="flex border-t border-gray-200 flex-shrink-0 bg-white"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      {/* ══ モバイルレイアウト（〜640px）══════════════════════ */}
+      <div
+        className="flex flex-col sm:hidden mx-auto"
+        style={{ maxWidth: 480, minHeight: "100dvh" }}
       >
-        {tabs.map(({ id, label, Icon }) => {
-          const active = activeTab === id;
-          return (
+        {/* ヘッダー */}
+        <header
+          className="flex items-center justify-between px-4 py-3 flex-shrink-0"
+          style={{ backgroundColor: NAVY }}
+        >
+          <div className="flex items-center gap-2">
+            <BarChartIcon />
+            <span className="text-white font-bold text-lg tracking-tight">StudyLens</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white/20 text-white text-sm font-bold">
+              {avatarChar}
+            </div>
             <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className="flex-1 flex flex-col items-center py-2 gap-0.5 transition-colors"
+              onClick={() => signOut()}
+              className="text-white/80 text-xs border border-white/30 rounded-full px-2.5 py-1 hover:bg-white/10 transition-colors ml-1"
             >
-              <Icon active={active} />
-              <span
-                className="text-[10px] font-medium"
-                style={{ color: active ? NAVY : "#9ca3af" }}
-              >
-                {label}
-              </span>
+              ログアウト
             </button>
-          );
-        })}
-      </nav>
+          </div>
+        </header>
+
+        {/* タブコンテンツ */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {tabContent[activeTab]}
+        </div>
+
+        {/* ボトムナビ */}
+        <nav
+          className="flex border-t border-gray-200 flex-shrink-0 bg-white"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          {tabs.map(({ id, label, Icon }) => {
+            const active = activeTab === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className="flex-1 flex flex-col items-center py-2 gap-0.5 transition-colors"
+              >
+                <Icon active={active} />
+                <span
+                  className="text-[10px] font-medium"
+                  style={{ color: active ? NAVY : "#9ca3af" }}
+                >
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
     </div>
   );
 }
