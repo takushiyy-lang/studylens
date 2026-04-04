@@ -501,21 +501,14 @@ export default function Home() {
   const WeaknessTab = () => (
     <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-5">
       <h2 className="text-base font-bold text-gray-800">弱点分析</h2>
-      <WeaknessTable
-        subject="国語"
-        rows={[
-          { topic: "記述問題", count: 12, accuracy: 35, priority: "高", measure: "毎日1問練習" },
-          { topic: "慣用句・ことわざ", count: 8, accuracy: 50, priority: "中", measure: "単語帳作成" },
-          { topic: "詩・俳句の鑑賞", count: 5, accuracy: 60, priority: "低", measure: "週1回復習" },
-        ]}
-      />
-      <WeaknessTable
-        subject="算数"
-        rows={[
-          { topic: "速さ・距離・時間", count: 15, accuracy: 38, priority: "高", measure: "公式の反復" },
-          { topic: "比と割合", count: 11, accuracy: 42, priority: "高", measure: "図解で理解" },
-          { topic: "場合の数", count: 7, accuracy: 55, priority: "中", measure: "樹形図練習" },
-        ]}
+      <EmptyState
+        icon={
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 8v4M12 16h.01" />
+          </svg>
+        }
+        onGoToData={() => setActiveTab("data")}
       />
     </div>
   );
@@ -524,169 +517,46 @@ export default function Home() {
   const RoutineTab = () => (
     <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-5">
       <h2 className="text-base font-bold text-gray-800">ルーティーン設計</h2>
-      <div className="bg-white rounded-2xl shadow-sm p-5">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-semibold text-gray-800">毎日45分ルーティン</p>
-          <span
-            className="text-xs px-2.5 py-1 rounded-full text-white font-medium"
-            style={{ backgroundColor: NAVY }}
-          >
-            平日
-          </span>
-        </div>
-        {[
-          { time: "17:00〜17:20", subject: "算数", task: "弱点問題演習（速さ）", color: "#fef3c7" },
-          { time: "17:20〜17:35", subject: "国語", task: "漢字・語彙10問", color: "#e0f2fe" },
-          { time: "17:35〜17:45", subject: "復習", task: "前日の間違い直し", color: "#f0fdf4" },
-        ].map((item, i) => (
-          <div key={i} className="flex items-center gap-3 mb-3 last:mb-0">
-            <div
-              className="w-2 h-2 rounded-full flex-shrink-0"
-              style={{ backgroundColor: NAVY }}
-            />
-            <div
-              className="flex-1 rounded-xl px-3 py-2.5"
-              style={{ backgroundColor: item.color }}
-            >
-              <p className="text-xs text-gray-500">{item.time}</p>
-              <p className="text-sm font-medium text-gray-800">
-                <span className="font-bold">{item.subject}</span>：{item.task}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="bg-white rounded-2xl shadow-sm p-5">
-        <p className="text-sm font-semibold text-gray-800 mb-3">時期別学習配分の変化</p>
-        <table className="w-full text-xs text-gray-700">
-          <thead>
-            <tr className="border-b border-gray-100">
-              <th className="text-left pb-2 font-medium text-gray-500">時期</th>
-              <th className="text-center pb-2 font-medium text-gray-500">算数</th>
-              <th className="text-center pb-2 font-medium text-gray-500">国語</th>
-              <th className="text-center pb-2 font-medium text-gray-500">理社</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[
-              { period: "〜8月", math: "40%", japanese: "30%", other: "30%" },
-              { period: "9〜10月", math: "35%", japanese: "35%", other: "30%" },
-              { period: "11〜12月", math: "30%", japanese: "40%", other: "30%" },
-              { period: "直前期", math: "25%", japanese: "40%", other: "35%" },
-            ].map((row, i) => (
-              <tr key={i} className="border-b border-gray-50 last:border-0">
-                <td className="py-2.5 font-medium">{row.period}</td>
-                <td className="py-2.5 text-center">{row.math}</td>
-                <td className="py-2.5 text-center">{row.japanese}</td>
-                <td className="py-2.5 text-center">{row.other}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <EmptyState
+        icon={
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M16 2v4M8 2v4M3 10h18" />
+            <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" />
+          </svg>
+        }
+        onGoToData={() => setActiveTab("data")}
+      />
     </div>
   );
 
   // 推移タブ
-  const TrendTab = () => {
-    const data = [48, 51, 50, 54, 53, 57, 56, 59, 58, 62];
-    const min = 44;
-    const max = 66;
-    const range = max - min;
-    const W = 300;
-    const H = 120;
-    const padX = 20;
-    const padY = 10;
-    const innerW = W - padX * 2;
-    const innerH = H - padY * 2;
-    const points = data.map((v, i) => {
-      const x = padX + (i / (data.length - 1)) * innerW;
-      const y = padY + innerH - ((v - min) / range) * innerH;
-      return `${x},${y}`;
-    });
-    const avg = Math.round(data.reduce((a, b) => a + b, 0) / data.length);
-
-    return (
-      <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-5">
-        <h2 className="text-base font-bold text-gray-800">偏差値推移</h2>
-        <div className="bg-white rounded-2xl shadow-sm p-5">
-          <p className="text-sm font-semibold text-gray-800 mb-4">4科偏差値の推移（直近10回）</p>
-          <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
-            {[50, 55, 60, 65].map((v) => {
-              const y = padY + innerH - ((v - min) / range) * innerH;
-              return (
-                <g key={v}>
-                  <line x1={padX} y1={y} x2={W - padX} y2={y} stroke="#f0f0f0" strokeWidth="1" />
-                  <text x={padX - 2} y={y + 3} fontSize="8" fill="#aaa" textAnchor="end">{v}</text>
-                </g>
-              );
-            })}
-            <polyline
-              points={points.join(" ")}
-              fill="none"
-              stroke={NAVY}
-              strokeWidth="2.5"
-              strokeLinejoin="round"
-            />
-            {data.map((v, i) => {
-              const x = padX + (i / (data.length - 1)) * innerW;
-              const y = padY + innerH - ((v - min) / range) * innerH;
-              return (
-                <circle key={i} cx={x} cy={y} r="4" fill="white" stroke={NAVY} strokeWidth="2" />
-              );
-            })}
+  const TrendTab = () => (
+    <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-5">
+      <h2 className="text-base font-bold text-gray-800">偏差値推移</h2>
+      <EmptyState
+        icon={
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
           </svg>
-          <div className="flex gap-2 overflow-x-auto mt-1" style={{ scrollbarWidth: "none" }}>
-            {["4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月", "1月"].map((m) => (
-              <span key={m} className="flex-shrink-0 text-xs text-gray-400" style={{ width: `${100 / 10}%`, textAlign: "center" }}>{m}</span>
-            ))}
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard label="平均偏差値" value={String(avg)} sub="10回平均" color="#e8f0fe" textColor={NAVY} />
-          <StatCard label="最高偏差値" value="62" sub="直近最高" color="#e6f4ea" textColor="#137333" />
-        </div>
-      </div>
-    );
-  };
+        }
+        onGoToData={() => setActiveTab("data")}
+      />
+    </div>
+  );
 
   // 志望校タブ
   const SchoolTab = () => (
     <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-5">
       <h2 className="text-base font-bold text-gray-800">志望校分析</h2>
-      {[
-        { name: "開成中学校", rank: "第一志望", judgment: "C判定", diff: "+6.8", strategy: "算数の難問対策を最優先に。過去問10年分を徹底分析し、記述力を強化する。" },
-        { name: "麻布中学校", rank: "第二志望", judgment: "B判定", diff: "+3.2", strategy: "国語の記述問題が鍵。自分の言葉で説明する練習を毎日続ける。" },
-        { name: "武蔵中学校", rank: "第三志望", judgment: "A判定", diff: "+0.8", strategy: "現状維持で合格圏内。理社の得点を安定させることに集中する。" },
-      ].map((school, i) => (
-        <div key={i} className="bg-white rounded-2xl shadow-sm p-5">
-          <div className="flex items-start justify-between mb-3">
-            <div>
-              <p className="text-sm font-bold text-gray-800">{school.name}</p>
-              <p className="text-xs text-gray-500">{school.rank}</p>
-            </div>
-            <div className="text-right">
-              <span
-                className="text-sm font-bold px-3 py-1 rounded-full"
-                style={{
-                  backgroundColor: school.judgment === "A判定" ? "#dcfce7" : school.judgment === "B判定" ? "#fef9c3" : "#fee2e2",
-                  color: school.judgment === "A判定" ? "#15803d" : school.judgment === "B判定" ? "#92400e" : "#dc2626",
-                }}
-              >
-                {school.judgment}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs text-gray-500">合格偏差値まで</span>
-            <span className="text-sm font-bold" style={{ color: NAVY }}>偏差値 +{school.diff}</span>
-          </div>
-          <div className="rounded-xl p-3" style={{ backgroundColor: "#f8faff" }}>
-            <p className="text-xs text-gray-500 mb-1">対策方針</p>
-            <p className="text-sm text-gray-700 leading-relaxed">{school.strategy}</p>
-          </div>
-        </div>
-      ))}
+      <EmptyState
+        icon={
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3L1 9l4 2.18V17h2v-4.82l1 .55V17c0 2.21 1.79 4 4 4s4-1.79 4-4v-4.27l3 1.64v-1.18L21 12V9L12 3z" />
+          </svg>
+        }
+        onGoToData={() => setActiveTab("data")}
+      />
     </div>
   );
 
@@ -831,6 +701,34 @@ export default function Home() {
 
 // ── サブコンポーネント ─────────────────────────────────────
 
+function EmptyState({
+  icon,
+  onGoToData,
+}: {
+  icon: React.ReactNode;
+  onGoToData: () => void;
+}) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center py-16 px-6 text-center bg-white rounded-2xl shadow-sm">
+      <div className="mb-4 opacity-60">{icon}</div>
+      <p className="text-base font-semibold text-gray-700 mb-2">まだデータがありません</p>
+      <p className="text-xs text-gray-400 leading-relaxed mb-6">
+        データタブからGoogle Driveのフォルダを<br />取り込むと自動で表示されます
+      </p>
+      <button
+        onClick={onGoToData}
+        className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+        style={{ backgroundColor: "#0C447C" }}
+      >
+        データを取り込む
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+          <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 function StatCard({
   label,
   value,
@@ -853,53 +751,6 @@ function StatCard({
   );
 }
 
-function WeaknessTable({
-  subject,
-  rows,
-}: {
-  subject: string;
-  rows: { topic: string; count: number; accuracy: number; priority: string; measure: string }[];
-}) {
-  return (
-    <div className="bg-white rounded-2xl shadow-sm p-4">
-      <p className="text-sm font-bold text-gray-800 mb-3">{subject}</p>
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs text-gray-700 min-w-[340px]">
-          <thead>
-            <tr className="border-b border-gray-100">
-              <th className="text-left pb-2 font-medium text-gray-500">項目</th>
-              <th className="text-center pb-2 font-medium text-gray-500">回数</th>
-              <th className="text-center pb-2 font-medium text-gray-500">正答率</th>
-              <th className="text-center pb-2 font-medium text-gray-500">優先度</th>
-              <th className="text-left pb-2 font-medium text-gray-500">対策</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, i) => (
-              <tr key={i} className="border-b border-gray-50 last:border-0">
-                <td className="py-2.5 font-medium">{row.topic}</td>
-                <td className="py-2.5 text-center">{row.count}</td>
-                <td className="py-2.5 text-center">{row.accuracy}%</td>
-                <td className="py-2.5 text-center">
-                  <span
-                    className="px-1.5 py-0.5 rounded text-xs font-medium"
-                    style={{
-                      backgroundColor: row.priority === "高" ? "#fee2e2" : row.priority === "中" ? "#fef9c3" : "#f0fdf4",
-                      color: row.priority === "高" ? "#dc2626" : row.priority === "中" ? "#92400e" : "#15803d",
-                    }}
-                  >
-                    {row.priority}
-                  </span>
-                </td>
-                <td className="py-2.5 text-gray-600">{row.measure}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
 
 function TypingDot({ delay }: { delay: number }) {
   return (
