@@ -166,6 +166,7 @@ ${filesDescription}
 
 【分析項目2: 単元別弱点分析】
 各科目（kokugo/sansu/rika/shakai）について：分野・単元・出現回数・平均正答率・傾向・評価(◎○△×)・優先度(最高/高/中/低/なし)・対策
+必ずweaknessesフィールドにkokugo・sansu・rika・shokaiの配列を含めてください。データが不明な場合も空配列[]ではなく、ファイル名から推測した内容を入れてください。各科目最低3件以上の弱点項目を返してください。
 
 【分析項目3: 志望校分析】
 現在の偏差値と目標偏差値の差分・判定・強み弱み科目・対策・判断時期
@@ -179,10 +180,10 @@ JSONのみ返してください（他の文章・コードブロック不要）:
     "recent3avg": {"kokugo": 0, "sansu": 0, "rika": 0, "shakai": 0, "total": 0}
   },
   "weaknesses": {
-    "kokugo": [{"field": "", "unit": "", "count": "", "avgCorrectRate": "", "tendency": "", "evaluation": "", "priority": "", "strategy": ""}],
-    "sansu": [],
-    "rika": [],
-    "shakai": []
+    "kokugo": [{"field": "読解", "unit": "物語文の心情把握", "count": "3", "avgCorrectRate": "45%", "tendency": "登場人物の気持ちの読み取りが弱い", "evaluation": "△", "priority": "高", "strategy": "毎日1題の読解練習"}],
+    "sansu": [{"field": "計算", "unit": "分数の計算", "count": "4", "avgCorrectRate": "50%", "tendency": "通分ミスが多い", "evaluation": "△", "priority": "最高", "strategy": "計算ドリルで反復練習"}],
+    "rika": [{"field": "生物", "unit": "植物のつくり", "count": "2", "avgCorrectRate": "55%", "tendency": "光合成の仕組みが曖昧", "evaluation": "○", "priority": "中", "strategy": "図を使って整理"}],
+    "shakai": [{"field": "歴史", "unit": "江戸時代", "count": "3", "avgCorrectRate": "48%", "tendency": "年号・人物の混同が多い", "evaluation": "△", "priority": "高", "strategy": "年表を作成して整理"}]
   },
   "schoolJudgments": [{"name": "", "tag": "", "currentJudgment": "", "pointsToA": "", "strongSubjects": "", "weakSubjects": "", "strategy": "", "decisionTiming": "", "diffs": {"kokugo": 0, "sansu": 0, "rika": 0, "shakai": 0}}]
 }`,
@@ -210,6 +211,14 @@ JSONのみ返してください（他の文章・コードブロック不要）:
     }
 
     console.log("[analyze] success");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const p = parsed as any;
+    console.log("[analyze] parsed weaknesses kokugo:", JSON.stringify(p?.weaknesses?.kokugo?.length ?? "N/A"));
+    console.log("[analyze] parsed weaknesses sansu:", JSON.stringify(p?.weaknesses?.sansu?.length ?? "N/A"));
+    console.log("[analyze] parsed weaknesses rika:", JSON.stringify(p?.weaknesses?.rika?.length ?? "N/A"));
+    console.log("[analyze] parsed weaknesses shakai:", JSON.stringify(p?.weaknesses?.shakai?.length ?? "N/A"));
+    console.log("[analyze] parsed deviationScores tests count:", p?.deviationScores?.tests?.length ?? "N/A");
+    console.log("[analyze] parsed schoolJudgments count:", p?.schoolJudgments?.length ?? "N/A");
     return Response.json(parsed);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
