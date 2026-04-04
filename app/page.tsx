@@ -303,7 +303,8 @@ export default function Home() {
         .then((r) => r.json())
         .then((routineData) => {
           setAnalysisResult((prev) =>
-            prev ? { ...prev, ...(routineData as { routine?: unknown; backcast?: unknown }) } : prev
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            prev ? { ...prev, ...(routineData as any) } : prev
           );
           setRoutineStatus("success");
         })
