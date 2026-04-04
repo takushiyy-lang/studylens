@@ -64,15 +64,16 @@ type AnalysisResult = {
     shakai: WeaknessEntry[];
   };
   schoolJudgments: SchoolJudgment[];
-  routine: {
+  routine?: {
     summary: string;
     items: RoutineItem[];
     phases: RoutinePhase[];
   };
-  backcast: {
+  backcast?: {
     topPriorities: string;
     phases: BackcastPhase[];
   };
+  _parseError?: boolean;
 };
 
 const QUICK_QUESTIONS = [
@@ -202,7 +203,9 @@ export default function Home() {
 
   // Analysis
   const [analyzeStatus, setAnalyzeStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [analyzeError, setAnalyzeError] = useState("");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [routineStatus, setRoutineStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -264,20 +267,49 @@ export default function Home() {
   async function handleAnalyze() {
     if (driveFiles.length === 0) return;
     setAnalyzeStatus("loading");
+    setAnalyzeError("");
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ files: driveFiles }),
       });
+      const data = await res.json();
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { error?: string }).error ?? "分析に失敗しました");
+        throw new Error((data as { error?: string; detail?: string }).detail ?? (data as { error?: string }).error ?? "分析に失敗しました");
       }
-      const data: AnalysisResult = await res.json();
-      setAnalysisResult(data);
+      if ((data as { _parseError?: boolean })._parseError) {
+        setAnalyzeError("分析結果の解析に一部失敗しましたが、取得できたデータを表示します");
+      }
+      setAnalysisResult(data as AnalysisResult);
       setAnalyzeStatus("success");
-    } catch {
+
+      // 成功後にルーティン・バックキャストを別途取得
+      setRoutineStatus("loading");
+      fetch("/api/routine", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileNames: driveFiles.map((f) => f.name),
+          analysisContext: JSON.stringify({
+            averages: (data as AnalysisResult).deviationScores?.averages,
+            topWeaknesses: [
+              ...((data as AnalysisResult).weaknesses?.sansu?.slice(0, 2) ?? []),
+              ...((data as AnalysisResult).weaknesses?.kokugo?.slice(0, 2) ?? []),
+            ],
+          }),
+        }),
+      })
+        .then((r) => r.json())
+        .then((routineData) => {
+          setAnalysisResult((prev) =>
+            prev ? { ...prev, ...(routineData as { routine?: unknown; backcast?: unknown }) } : prev
+          );
+          setRoutineStatus("success");
+        })
+        .catch(() => setRoutineStatus("error"));
+    } catch (e) {
+      setAnalyzeError(e instanceof Error ? e.message : "分析に失敗しました");
       setAnalyzeStatus("error");
     }
   }
@@ -468,9 +500,9 @@ export default function Home() {
                 : "AIで分析する"}
             </button>
           )}
-          {analyzeStatus === "error" && (
-            <div className="px-3 py-2.5 rounded-xl" style={{ backgroundColor: "#fef2f2" }}>
-              <span className="text-sm" style={{ color: "#dc2626" }}>分析に失敗しました。もう一度お試しください。</span>
+          {analyzeError && (
+            <div className="px-3 py-2.5 rounded-xl" style={{ backgroundColor: analyzeStatus === "error" ? "#fef2f2" : "#fef9c3" }}>
+              <span className="text-sm" style={{ color: analyzeStatus === "error" ? "#dc2626" : "#92400e" }}>{analyzeError}</span>
             </div>
           )}
           {analyzeStatus === "success" && (
@@ -559,7 +591,12 @@ export default function Home() {
     return (
       <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-5">
         <h2 className="text-base font-bold text-gray-800">ルーティーン設計</h2>
-        {!routine ? (
+        {routineStatus === "loading" && !routine ? (
+          <div className="bg-white rounded-2xl shadow-sm p-8 flex flex-col items-center gap-3">
+            <SpinnerIcon color={NAVY} />
+            <p className="text-sm text-gray-500">ルーティン・バックキャスト計画を生成中...</p>
+          </div>
+        ) : !routine ? (
           <EmptyState icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" /></svg>} onGoToData={() => setActiveTab("data")} />
         ) : (
           <>
