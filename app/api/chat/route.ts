@@ -17,7 +17,9 @@ export async function POST(req: NextRequest) {
 
   const response = await client.messages.create({
     model: "claude-sonnet-4-20250514",
-    max_tokens: 1024,
+    max_tokens: 512,
+    system:
+      "あなたは中学受験専門のAIアドバイザーです。小学生とその保護者に寄り添い、温かく励ます口調で回答してください。回答は200字以内にまとめ、具体的なアドバイスを心がけてください。",
     messages: [{ role: "user", content: message }],
   });
 
