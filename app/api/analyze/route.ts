@@ -25,7 +25,6 @@ async function fetchFileContent(
     ) {
       url = `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`;
     } else {
-      // PDFや画像など: テキスト取得不可のためファイル名のみ
       return "";
     }
 
@@ -56,7 +55,6 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "files is required" }, { status: 400 });
   }
 
-  // 各ファイルのテキスト内容を並列取得（最大10件）
   const targets = files.slice(0, 10);
   const fileContents = await Promise.all(
     targets.map(async (file) => {
@@ -68,15 +66,17 @@ export async function POST(req: NextRequest) {
   const filesDescription = fileContents
     .map(
       (f) =>
-        `ファイル名: ${f.name}\nタイプ: ${f.mimeType}\n内容: ${f.content || "(テキスト抽出不可 — ファイル名から推定してください)"}`
+        `ファイル名: ${f.name}\nタイプ: ${f.mimeType}\n内容: ${
+          f.content || "(テキスト抽出不可 — ファイル名から科目・内容を推定してください)"
+        }`
     )
     .join("\n\n---\n\n");
 
   const response = await claude.messages.create({
     model: "claude-sonnet-4-20250514",
-    max_tokens: 2048,
+    max_tokens: 4096,
     system:
-      "あなたは中学受験の学習データを分析するAIです。提供されたファイル情報から学習状況を分析し、必ずJSON形式のみで返答してください。JSONの前後に余計な文章を含めないでください。",
+      "あなたは中学受験の成績分析の専門家です。提供されたテストデータを深く分析し、必ずJSON形式のみで返答してください。JSONの前後に余計な文章を含めないでください。",
     messages: [
       {
         role: "user",
@@ -84,35 +84,65 @@ export async function POST(req: NextRequest) {
 
 ${filesDescription}
 
-以下のJSON形式のみで返してください:
+あなたは中学受験の成績分析の専門家です。提供されたテストデータを以下の形式で深く分析してください。
+
+【分析項目1: 偏差値データ】
+- 各テストの国語・算数・理科・社会・4科計の偏差値
+- 平均偏差値・最高値・直近3回平均
+- 判定ランク（A〜E）
+
+【分析項目2: 単元別弱点分析】
+各科目について以下を分析してください：
+- 分野名
+- 単元名
+- 出現回数（何回のテストに出たか）
+- 平均正答率（全体の正答率）
+- 正答傾向（どのような間違いパターンがあるか）
+- 評価（◎/○/△/×）
+- 優先度（最高/高/中/低/なし）
+- 具体的な対策コメント（どんな練習をすべきか詳しく）
+
+【分析項目3: 志望校分析】
+- 現在の偏差値と目標偏差値の差分
+- 合格判定
+- 強み科目・弱み科目
+- 具体的な対策方針
+- 合否判断時期
+
+【分析項目4: 学習ルーティン提案】
+- 毎日の学習時間配分（45分想定）
+- 時期別の学習内容の変化
+- 各項目のデータ根拠
+
+【分析項目5: バックキャスト計画】
+- 入試日から逆算した月別学習計画
+- フェーズ分け（守り期・始動期・天王山・過去問期・仕上げ・直前）
+- 科目別の月別タスク
+
+以下のJSON形式のみで返してください（他の文章は不要）:
 {
   "deviationScores": {
-    "japanese": <国語偏差値(整数)>,
-    "math": <算数偏差値(整数)>,
-    "science": <理科偏差値(整数)>,
-    "social": <社会偏差値(整数)>,
-    "total": <4科偏差値(整数)>
+    "tests": [{"name": "", "date": "", "kokugo": 0, "sansu": 0, "rika": 0, "shakai": 0, "total": 0, "rank": ""}],
+    "averages": {"kokugo": 0, "sansu": 0, "rika": 0, "shakai": 0, "total": 0},
+    "best": {"kokugo": 0, "sansu": 0, "rika": 0, "shakai": 0, "total": 0},
+    "recent3avg": {"kokugo": 0, "sansu": 0, "rika": 0, "shakai": 0, "total": 0}
   },
-  "weaknesses": [
-    {
-      "subject": "<科目名>",
-      "topic": "<単元名>",
-      "count": <出現回数(整数)>,
-      "accuracy": <正答率%(整数)>,
-      "priority": "<高|中|低>",
-      "measure": "<具体的な対策>"
-    }
-  ],
-  "schoolJudgments": [
-    {
-      "name": "<学校名>",
-      "rank": "<第一志望|第二志望|第三志望>",
-      "judgment": "<A判定|B判定|C判定>",
-      "diff": "<偏差値差(例:+3.2)>",
-      "strategy": "<対策方針(1〜2文)>"
-    }
-  ],
-  "trendData": [<直近の偏差値推移、最大10個の整数配列>]
+  "weaknesses": {
+    "kokugo": [{"field": "", "unit": "", "count": "", "avgCorrectRate": "", "tendency": "", "evaluation": "", "priority": "", "strategy": ""}],
+    "sansu": [],
+    "rika": [],
+    "shakai": []
+  },
+  "schoolJudgments": [{"name": "", "tag": "", "currentJudgment": "", "pointsToA": "", "strongSubjects": "", "weakSubjects": "", "strategy": "", "decisionTiming": "", "diffs": {"kokugo": 0, "sansu": 0, "rika": 0, "shakai": 0}}],
+  "routine": {
+    "summary": "",
+    "items": [{"time": "", "subject": "", "importance": "", "menu": "", "detail": ""}],
+    "phases": [{"period": "", "reading": "", "vocabulary": ""}]
+  },
+  "backcast": {
+    "topPriorities": "",
+    "phases": [{"phase": "", "months": [{"month": "", "kokugo": "", "sansu": "", "rika": "", "shakai": "", "routine": ""}]}]
+  }
 }`,
       },
     ],
@@ -121,7 +151,6 @@ ${filesDescription}
   const text =
     response.content[0].type === "text" ? response.content[0].text : "";
 
-  // JSONを抽出してパース
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     console.error("Claude response did not contain JSON:", text);
