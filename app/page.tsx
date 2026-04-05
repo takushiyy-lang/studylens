@@ -368,161 +368,336 @@ export default function Home() {
     const avg = analysisResult?.deviationScores?.averages;
     const topSchool = analysisResult?.schoolJudgments?.[0];
     const topWeak = analysisResult?.weaknesses?.sansu?.[0] ?? analysisResult?.weaknesses?.kokugo?.[0];
-    return (
-      <div className="flex flex-col flex-1 overflow-hidden min-h-0">
-        <div className="grid grid-cols-2 gap-3 px-4 pt-4 pb-2 flex-shrink-0">
-          <StatCard label="4科偏差値"    value={avg ? String(avg.total) : "—"} sub={avg ? `算${avg.sansu}・国${avg.kokugo}` : "データなし"} color="#e8f0fe" textColor={NAVY} />
-          <StatCard label="第一志望判定"  value={topSchool?.currentJudgment ?? "—"} sub={topSchool?.name ?? "データなし"} color="#e6f4ea" textColor="#137333" />
-          <StatCard label="取込ファイル数" value={driveFiles.length > 0 ? String(driveFiles.length) : "—"} sub={driveFiles.length > 0 ? "取込済み" : "データなし"} color="#fef7e0" textColor="#b45309" />
-          <StatCard label="最優先弱点"    value={topWeak?.unit ?? "—"} sub={topWeak ? `正答率 ${topWeak.avgCorrectRate}` : "データなし"} color="#fce8e6" textColor="#c5221f" />
-        </div>
 
-        <div className="flex items-center gap-3 px-4 py-2 flex-shrink-0 bg-white border-b border-gray-100">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: NAVY }}><BarChartIcon /></div>
-          <div>
-            <p className="text-sm font-semibold text-gray-800">StudyLens AI</p>
-            <p className="text-xs" style={{ color: "#22c55e" }}>● オンライン</p>
+    function resetDrive() {
+      setFileListStatus("idle");
+      setDriveFiles([]);
+      setFileListError("");
+      setAnalyzeStatus("idle");
+      setAnalyzeError("");
+      setAnalysisResult(null);
+    }
+
+    // ── AI分析中 ────────────────────────────────────
+    if (analyzeStatus === "loading") {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 gap-6">
+          <div className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-md" style={{ backgroundColor: NAVY }}>
+            <svg className="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+              <circle cx="12" cy="12" r="9" strokeOpacity="0.3" />
+              <path d="M21 12a9 9 0 00-9-9" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-bold text-gray-800 mb-2">AI分析中...</p>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              ファイルを読み取り、弱点・偏差値・志望校を<br />分析しています。通常30〜60秒かかります。
+            </p>
+          </div>
+          <div className="w-full max-w-[240px] h-1.5 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-full rounded-full animate-pulse" style={{ width: "65%", backgroundColor: NAVY }} />
+          </div>
+        </div>
+      );
+    }
+
+    // ── 分析完了 ────────────────────────────────────
+    if (analyzeStatus === "success") {
+      return (
+        <div className="flex flex-col flex-1 overflow-hidden min-h-0">
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-3 px-4 pt-4 pb-2 flex-shrink-0">
+            <StatCard label="4科偏差値"    value={avg ? String(avg.total) : "—"} sub={avg ? `算${avg.sansu}・国${avg.kokugo}` : "データなし"} color="#e8f0fe" textColor={NAVY} />
+            <StatCard label="第一志望判定"  value={topSchool?.currentJudgment ?? "—"} sub={topSchool?.name ?? "データなし"} color="#e6f4ea" textColor="#137333" />
+            <StatCard label="取込ファイル数" value={driveFiles.length > 0 ? String(driveFiles.length) : "—"} sub={driveFiles.length > 0 ? "取込済み" : "データなし"} color="#fef7e0" textColor="#b45309" />
+            <StatCard label="最優先弱点"    value={topWeak?.unit ?? "—"} sub={topWeak ? `正答率 ${topWeak.avgCorrectRate}` : "データなし"} color="#fce8e6" textColor="#c5221f" />
+          </div>
+
+          {/* Quick nav + re-import */}
+          <div className="flex items-center gap-2 px-4 pb-2 flex-shrink-0 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+            {([
+              { tab: "weakness" as Tab, label: "弱点分析",  bg: "#fee2e2", color: "#dc2626" },
+              { tab: "trend"    as Tab, label: "偏差値推移", bg: "#e8f0fe", color: NAVY },
+              { tab: "routine"  as Tab, label: "ルーティン", bg: "#e6f4ea", color: "#15803d" },
+              { tab: "school"   as Tab, label: "志望校",     bg: "#fef7e0", color: "#b45309" },
+            ]).map(({ tab, label, bg, color }) => (
+              <button key={tab} onClick={() => setActiveTab(tab)}
+                className="flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
+                style={{ backgroundColor: bg, color }}>
+                {label} →
+              </button>
+            ))}
+            <button onClick={resetDrive}
+              className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-400 hover:text-gray-600 transition-colors ml-1">
+              再取込み
+            </button>
+          </div>
+
+          {/* Chat header */}
+          <div className="flex items-center gap-3 px-4 py-2 flex-shrink-0 bg-white border-b border-gray-100">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: NAVY }}><BarChartIcon /></div>
+            <div>
+              <p className="text-sm font-semibold text-gray-800">StudyLens AI</p>
+              <p className="text-xs" style={{ color: "#22c55e" }}>● オンライン</p>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3 flex flex-col gap-2 bg-white">
+            {messages.length === 0 && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] px-4 py-2.5 text-sm leading-relaxed text-gray-800" style={{ backgroundColor: "#f0f0f0", borderRadius: "18px 18px 18px 0px" }}>
+                  分析が完了しました🎉<br />各タブで詳しい結果を確認するか、勉強の疑問を何でも聞いてください！
+                </div>
+              </div>
+            )}
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                {msg.role === "assistant" && (
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mr-2 self-end" style={{ backgroundColor: NAVY }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><rect x="3" y="12" width="3" height="9" rx="0.5" /><rect x="9" y="7" width="3" height="14" rx="0.5" /><rect x="15" y="3" width="3" height="18" rx="0.5" /></svg>
+                  </div>
+                )}
+                <div className="max-w-[75%] px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap"
+                  style={msg.role === "user"
+                    ? { backgroundColor: NAVY, color: "white", borderRadius: "18px 18px 0px 18px" }
+                    : { backgroundColor: "#f0f0f0", color: "#1f2937", borderRadius: "18px 18px 18px 0px" }}>
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            {chatLoading && (
+              <div className="flex justify-start items-end gap-2">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: NAVY }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><rect x="3" y="12" width="3" height="9" rx="0.5" /><rect x="9" y="7" width="3" height="14" rx="0.5" /><rect x="15" y="3" width="3" height="18" rx="0.5" /></svg>
+                </div>
+                <div className="px-4 py-3 flex items-center gap-1" style={{ backgroundColor: "#f0f0f0", borderRadius: "18px 18px 18px 0px" }}>
+                  <TypingDot delay={0} /><TypingDot delay={0.2} /><TypingDot delay={0.4} />
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Quick questions */}
+          <div className="flex gap-2 px-3 py-2 overflow-x-auto flex-shrink-0 bg-white border-t border-gray-100" style={{ scrollbarWidth: "none" }}>
+            {QUICK_QUESTIONS.map((q) => (
+              <button key={q} onClick={() => sendMessage(q)} disabled={chatLoading}
+                className="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border transition-colors hover:bg-blue-50 disabled:opacity-50"
+                style={{ borderColor: NAVY, color: NAVY }}>{q}</button>
+            ))}
+          </div>
+
+          {/* Input */}
+          <div className="px-3 pb-3 pt-2 flex gap-2 flex-shrink-0 bg-white">
+            <input type="text" value={input} onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
+              placeholder="メッセージを入力..." disabled={chatLoading}
+              className="flex-1 rounded-full border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-blue-300 bg-gray-50" />
+            <button onClick={() => sendMessage(input)} disabled={chatLoading || !input.trim()}
+              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 disabled:opacity-40 transition-opacity"
+              style={{ backgroundColor: NAVY }}><SendIcon /></button>
+          </div>
+        </div>
+      );
+    }
+
+    // ── セットアップ（Step 1 / Step 2）──────────────
+    const step = fileListStatus === "success" && driveFiles.length > 0 ? 2 : 1;
+
+    return (
+      <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-4">
+
+        {/* Step indicator */}
+        <div className="flex items-center px-2 gap-0">
+          {/* Step 1 */}
+          <div className="flex flex-col items-center gap-1">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+              style={{ backgroundColor: step > 1 ? NAVY : step === 1 ? NAVY : "#e5e7eb", color: step >= 1 ? "white" : "#9ca3af" }}>
+              {step > 1 ? <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg> : "1"}
+            </div>
+            <span className="text-[10px] font-medium" style={{ color: step === 1 ? NAVY : "#9ca3af" }}>接続</span>
+          </div>
+          <div className="flex-1 h-0.5 mb-3 mx-1 rounded-full" style={{ backgroundColor: step > 1 ? NAVY : "#e5e7eb" }} />
+          {/* Step 2 */}
+          <div className="flex flex-col items-center gap-1">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+              style={{ backgroundColor: step === 2 ? NAVY : "#e5e7eb", color: step === 2 ? "white" : "#9ca3af" }}>
+              2
+            </div>
+            <span className="text-[10px] font-medium" style={{ color: step === 2 ? NAVY : "#9ca3af" }}>分析</span>
+          </div>
+          <div className="flex-1 h-0.5 mb-3 mx-1 rounded-full" style={{ backgroundColor: "#e5e7eb" }} />
+          {/* Step 3 */}
+          <div className="flex flex-col items-center gap-1">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: "#e5e7eb", color: "#9ca3af" }}>
+              3
+            </div>
+            <span className="text-[10px] font-medium" style={{ color: "#9ca3af" }}>完了</span>
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3 flex flex-col gap-2 bg-white">
-          {messages.length === 0 && (
-            <div className="flex justify-start">
-              <div className="max-w-[80%] px-4 py-2.5 text-sm leading-relaxed text-gray-800" style={{ backgroundColor: "#f0f0f0", borderRadius: "18px 18px 18px 0px" }}>
-                こんにちは、{userName}さん！😊<br />中学受験の勉強について、何でも聞いてください。一緒に頑張りましょう！
-              </div>
-            </div>
-          )}
-          {messages.map((msg, i) => (
-            <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              {msg.role === "assistant" && (
-                <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mr-2 self-end" style={{ backgroundColor: NAVY }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><rect x="3" y="12" width="3" height="9" rx="0.5" /><rect x="9" y="7" width="3" height="14" rx="0.5" /><rect x="15" y="3" width="3" height="18" rx="0.5" /></svg>
+        {/* ── Step 2: ファイル確認 ── */}
+        {step === 2 ? (
+          <div className="bg-white rounded-2xl shadow-sm p-5 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#f0fdf4" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="#16a34a"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
                 </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{driveFiles.length}件のファイルを取得しました</p>
+                  <p className="text-xs text-gray-400">AIが分析できる状態です</p>
+                </div>
+              </div>
+              <button onClick={resetDrive} className="text-xs text-blue-500 hover:text-blue-700 transition-colors">
+                変更
+              </button>
+            </div>
+
+            {/* File list */}
+            <div className="rounded-xl border border-gray-100 overflow-hidden" style={{ maxHeight: 200, overflowY: "auto" }}>
+              {driveFiles.map((file) => (
+                <div key={file.id} className="flex items-center gap-3 px-3 py-2.5 border-b border-gray-50 last:border-0">
+                  <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-[10px] font-bold text-blue-600">{fileMimeLabel(file.mimeType)}</span>
+                  </div>
+                  <span className="text-xs text-gray-700 flex-1 truncate">{file.name}</span>
+                </div>
+              ))}
+            </div>
+
+            {analyzeError && (
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ backgroundColor: "#fef2f2" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#dc2626"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>
+                <span className="text-xs" style={{ color: "#dc2626" }}>{analyzeError}</span>
+              </div>
+            )}
+
+            <button onClick={handleAnalyze}
+              className="w-full py-3.5 rounded-xl text-white font-bold text-sm transition-opacity hover:opacity-90 flex items-center justify-center gap-2"
+              style={{ backgroundColor: "#16a34a" }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3a1 1 0 110 2 1 1 0 010-2zm0 4a4 4 0 110 8 4 4 0 010-8zm0 2a2 2 0 100 4 2 2 0 000-4z" /></svg>
+              AIで分析する
+            </button>
+          </div>
+        ) : (
+          /* ── Step 1: Drive接続 ── */
+          <div className="bg-white rounded-2xl shadow-sm p-6 flex flex-col gap-5">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#f8f9ff" }}>
+                <DriveIcon />
+              </div>
+              <div>
+                <p className="text-base font-bold text-gray-800">Google Driveを接続</p>
+                <p className="text-xs text-gray-500">模試・テスト結果が入ったフォルダのURLを入力</p>
+              </div>
+            </div>
+
+            <input
+              type="url"
+              value={driveUrl}
+              onChange={(e) => { setDriveUrl(e.target.value); if (fileListStatus === "error") setFileListStatus("idle"); }}
+              placeholder="https://drive.google.com/drive/folders/..."
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-300 disabled:bg-gray-50"
+              disabled={fileListStatus === "loading"}
+            />
+
+            {fileListStatus === "error" && (
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ backgroundColor: "#fef2f2" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#dc2626"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>
+                <span className="text-xs" style={{ color: "#dc2626" }}>{fileListError}</span>
+              </div>
+            )}
+
+            <button
+              onClick={handleFetchFiles}
+              disabled={fileListStatus === "loading" || !driveUrl.trim()}
+              className="w-full py-3.5 rounded-xl text-white font-bold text-sm transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+              style={{ backgroundColor: NAVY }}>
+              {fileListStatus === "loading" ? (
+                <><SpinnerIcon />取得中...</>
+              ) : (
+                <>ファイルを取得する<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z" /></svg></>
               )}
-              <div className="max-w-[75%] px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap"
-                style={msg.role === "user"
-                  ? { backgroundColor: NAVY, color: "white", borderRadius: "18px 18px 0px 18px" }
-                  : { backgroundColor: "#f0f0f0", color: "#1f2937", borderRadius: "18px 18px 18px 0px" }}>
-                {msg.content}
-              </div>
-            </div>
-          ))}
-          {chatLoading && (
-            <div className="flex justify-start items-end gap-2">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: NAVY }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><rect x="3" y="12" width="3" height="9" rx="0.5" /><rect x="9" y="7" width="3" height="14" rx="0.5" /><rect x="15" y="3" width="3" height="18" rx="0.5" /></svg>
-              </div>
-              <div className="px-4 py-3 flex items-center gap-1" style={{ backgroundColor: "#f0f0f0", borderRadius: "18px 18px 18px 0px" }}>
-                <TypingDot delay={0} /><TypingDot delay={0.2} /><TypingDot delay={0.4} />
-              </div>
-            </div>
-          )}
-          <div ref={bottomRef} />
-        </div>
+            </button>
+          </div>
+        )}
 
-        <div className="flex gap-2 px-3 py-2 overflow-x-auto flex-shrink-0 bg-white border-t border-gray-100" style={{ scrollbarWidth: "none" }}>
-          {QUICK_QUESTIONS.map((q) => (
-            <button key={q} onClick={() => sendMessage(q)} disabled={chatLoading}
-              className="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border transition-colors hover:bg-blue-50 disabled:opacity-50"
-              style={{ borderColor: NAVY, color: NAVY }}>{q}</button>
-          ))}
-        </div>
-
-        <div className="px-3 pb-3 pt-2 flex gap-2 flex-shrink-0 bg-white">
-          <input type="text" value={input} onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
-            placeholder="メッセージを入力..." disabled={chatLoading}
-            className="flex-1 rounded-full border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-blue-300 bg-gray-50" />
-          <button onClick={() => sendMessage(input)} disabled={chatLoading || !input.trim()}
-            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 disabled:opacity-40 transition-opacity"
-            style={{ backgroundColor: NAVY }}><SendIcon /></button>
-        </div>
+        {/* Features showcase（Step 1のみ） */}
+        {step === 1 && (
+          <div className="bg-white rounded-2xl shadow-sm p-5">
+            <p className="text-sm font-bold text-gray-700 mb-4">StudyLensでできること</p>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { bg: "#e8f0fe", color: NAVY,      icon: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z",  title: "弱点分析",    desc: "科目・単元ごとの弱点を特定" },
+                { bg: "#e6f4ea", color: "#15803d", icon: "M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z",                                    title: "偏差値推移",  desc: "模試の成績を可視化" },
+                { bg: "#fef7e0", color: "#b45309", icon: "M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2h-1V1h-2zm3 18H5V8h14v11z", title: "ルーティン",   desc: "最適な学習スケジュール" },
+                { bg: "#fce8e6", color: "#c5221f", icon: "M12 3L1 9l4 2.18V17h2v-4.82l1 .55V17c0 2.21 1.79 4 4 4s4-1.79 4-4v-4.27l3 1.64v-1.18L21 12V9L12 3z",  title: "志望校分析",  desc: "合格可能性と対策を提案" },
+              ].map(({ bg, color, icon, title, desc }) => (
+                <div key={title} className="rounded-xl p-3.5" style={{ backgroundColor: bg }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill={color} className="mb-2"><path d={icon} /></svg>
+                  <p className="text-xs font-bold mb-0.5" style={{ color }}>{title}</p>
+                  <p className="text-[11px] text-gray-500 leading-tight">{desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
 
   // ─── Data Tab ──────────────────────────────────────────
   const DataTab = () => (
-    <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-5">
-      <h2 className="text-base font-bold text-gray-800">データ取り込み</h2>
-      <div className="bg-white rounded-2xl shadow-sm p-5 flex flex-col gap-4">
-        <div className="flex items-center gap-3">
-          <DriveIcon />
-          <div>
-            <p className="text-sm font-semibold text-gray-800">Google Drive</p>
-            <p className="text-xs text-gray-500">フォルダのURLを入力してください</p>
-          </div>
-        </div>
-        <input type="url" value={driveUrl}
-          onChange={(e) => { setDriveUrl(e.target.value); if (fileListStatus === "error") setFileListStatus("idle"); }}
-          placeholder="https://drive.google.com/drive/folders/..."
-          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-300 disabled:bg-gray-50"
-          disabled={fileListStatus === "loading"} />
-        {fileListStatus === "loading" && (
-          <div className="flex items-center gap-2 text-sm text-gray-500"><SpinnerIcon color="#6b7280" /><span>ファイル一覧を取得中...</span></div>
-        )}
-        {fileListStatus === "error" && (
-          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ backgroundColor: "#fef2f2" }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#dc2626"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>
-            <span className="text-sm" style={{ color: "#dc2626" }}>{fileListError}</span>
-          </div>
-        )}
-        <button onClick={handleFetchFiles} disabled={fileListStatus === "loading" || !driveUrl.trim()}
-          className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-          style={{ backgroundColor: NAVY }}>
-          {fileListStatus === "loading" ? <span className="flex items-center justify-center gap-2"><SpinnerIcon />取得中...</span> : "ファイル一覧を取得"}
-        </button>
-      </div>
+    <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-4">
+      <h2 className="text-base font-bold text-gray-800">データ再取込み</h2>
 
-      {fileListStatus === "success" && (
+      {analyzeStatus === "success" ? (
+        /* 分析済み：取込済みファイルの確認 + 再取込みボタン */
         <div className="bg-white rounded-2xl shadow-sm p-5 flex flex-col gap-4">
-          <p className="text-sm font-semibold text-gray-800">取得したファイル（{driveFiles.length}件）</p>
-          {driveFiles.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-3">フォルダ内にファイルが見つかりませんでした</p>
-          ) : (
+          <div className="flex items-center gap-3 pb-1">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#f0fdf4" }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="#16a34a"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+            </div>
             <div>
-              {driveFiles.map((file) => (
-                <div key={file.id} className="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0">
-                  <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-bold text-blue-600">{fileMimeLabel(file.mimeType)}</span>
-                  </div>
-                  <span className="text-sm text-gray-700 flex-1 truncate">{file.name}</span>
+              <p className="text-sm font-semibold text-gray-800">取込済み：{driveFiles.length}件</p>
+              <p className="text-xs text-gray-400">AI分析が完了しています</p>
+            </div>
+          </div>
+          <div className="rounded-xl border border-gray-100 overflow-hidden" style={{ maxHeight: 240, overflowY: "auto" }}>
+            {driveFiles.map((file) => (
+              <div key={file.id} className="flex items-center gap-3 px-3 py-2.5 border-b border-gray-50 last:border-0">
+                <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="text-[10px] font-bold text-blue-600">{fileMimeLabel(file.mimeType)}</span>
                 </div>
-              ))}
-            </div>
-          )}
-          {driveFiles.length > 0 && analyzeStatus !== "success" && (
-            <button onClick={handleAnalyze} disabled={analyzeStatus === "loading"}
-              className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{ backgroundColor: "#16a34a" }}>
-              {analyzeStatus === "loading"
-                ? <span className="flex items-center justify-center gap-2"><SpinnerIcon />AI分析中...（しばらくお待ちください）</span>
-                : "AIで分析する"}
-            </button>
-          )}
-          {analyzeError && (
-            <div className="px-3 py-2.5 rounded-xl" style={{ backgroundColor: analyzeStatus === "error" ? "#fef2f2" : "#fef9c3" }}>
-              <span className="text-sm" style={{ color: analyzeStatus === "error" ? "#dc2626" : "#92400e" }}>{analyzeError}</span>
-            </div>
-          )}
-          {analyzeStatus === "success" && (
-            <div className="flex flex-col gap-2 px-3 py-3 rounded-xl" style={{ backgroundColor: "#f0fdf4" }}>
-              <div className="flex items-center gap-2">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="#16a34a"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
-                <span className="text-sm font-medium" style={{ color: "#15803d" }}>AI分析が完了しました</span>
+                <span className="text-xs text-gray-700 flex-1 truncate">{file.name}</span>
               </div>
-              <div className="flex gap-2 flex-wrap">
-                {(["weakness", "trend", "routine", "school"] as Tab[]).map((t) => (
-                  <button key={t} onClick={() => setActiveTab(t)}
-                    className="text-xs px-3 py-1.5 rounded-full font-medium"
-                    style={{ backgroundColor: "#dcfce7", color: "#15803d" }}>
-                    {t === "weakness" ? "弱点分析" : t === "trend" ? "偏差値推移" : t === "routine" ? "ルーティン" : "志望校分析"} →
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+            ))}
+          </div>
+          <button onClick={() => setActiveTab("home")}
+            className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-opacity hover:opacity-90 flex items-center justify-center gap-2"
+            style={{ backgroundColor: NAVY }}>
+            ホームで再取込み
+          </button>
+        </div>
+      ) : (
+        /* 未分析：ホームへ誘導 */
+        <div className="bg-white rounded-2xl shadow-sm p-8 flex flex-col items-center gap-5 text-center">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: "#f8f9ff" }}>
+            <DriveIcon />
+          </div>
+          <div>
+            <p className="text-base font-bold text-gray-800 mb-2">データをまだ取り込んでいません</p>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              ホームからGoogle DriveのURLを入力して<br />AI分析を開始しましょう。
+            </p>
+          </div>
+          <button onClick={() => setActiveTab("home")}
+            className="px-6 py-3 rounded-xl text-white font-bold text-sm transition-opacity hover:opacity-90"
+            style={{ backgroundColor: NAVY }}>
+            ホームへ
+          </button>
         </div>
       )}
     </div>
@@ -541,7 +716,7 @@ export default function Home() {
       <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-5">
         <h2 className="text-base font-bold text-gray-800">弱点分析</h2>
         {!w ? (
-          <EmptyState icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>} onGoToData={() => setActiveTab("data")} />
+          <EmptyState icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>} onGoToData={() => setActiveTab("home")} />
         ) : (
           SUBJECTS.map(({ key, label }) => {
             const rows = w[key] ?? [];
@@ -598,7 +773,7 @@ export default function Home() {
             <p className="text-sm text-gray-500">ルーティン・バックキャスト計画を生成中...</p>
           </div>
         ) : !routine ? (
-          <EmptyState icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" /></svg>} onGoToData={() => setActiveTab("data")} />
+          <EmptyState icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" /></svg>} onGoToData={() => setActiveTab("home")} />
         ) : (
           <>
             {routine.summary && (
@@ -709,7 +884,7 @@ export default function Home() {
       return (
         <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-5">
           <h2 className="text-base font-bold text-gray-800">偏差値推移</h2>
-          <EmptyState icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>} onGoToData={() => setActiveTab("data")} />
+          <EmptyState icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>} onGoToData={() => setActiveTab("home")} />
         </div>
       );
     }
@@ -852,7 +1027,7 @@ export default function Home() {
       <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-5">
         <h2 className="text-base font-bold text-gray-800">志望校分析</h2>
         {!analysisResult ? (
-          <EmptyState icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3L1 9l4 2.18V17h2v-4.82l1 .55V17c0 2.21 1.79 4 4 4s4-1.79 4-4v-4.27l3 1.64v-1.18L21 12V9L12 3z" /></svg>} onGoToData={() => setActiveTab("data")} />
+          <EmptyState icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3L1 9l4 2.18V17h2v-4.82l1 .55V17c0 2.21 1.79 4 4 4s4-1.79 4-4v-4.27l3 1.64v-1.18L21 12V9L12 3z" /></svg>} onGoToData={() => setActiveTab("home")} />
         ) : schools.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-sm p-5 text-center"><p className="text-sm text-gray-400 py-4">志望校データがありませんでした</p></div>
         ) : (
@@ -985,9 +1160,9 @@ function EmptyState({ icon, onGoToData }: { icon: React.ReactNode; onGoToData: (
     <div className="flex-1 flex flex-col items-center justify-center py-16 px-6 text-center bg-white rounded-2xl shadow-sm">
       <div className="mb-4 opacity-60">{icon}</div>
       <p className="text-base font-semibold text-gray-700 mb-2">まだデータがありません</p>
-      <p className="text-xs text-gray-400 leading-relaxed mb-6">データタブからGoogle Driveのフォルダを<br />取り込むと自動で表示されます</p>
+      <p className="text-xs text-gray-400 leading-relaxed mb-6">ホームからGoogle DriveのURLを入力して<br />AI分析を開始すると自動で表示されます</p>
       <button onClick={onGoToData} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90" style={{ backgroundColor: "#0C447C" }}>
-        データを取り込む
+        ホームで分析する
         <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z" /></svg>
       </button>
     </div>
