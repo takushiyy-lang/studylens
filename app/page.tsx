@@ -491,7 +491,7 @@ export default function Home() {
           {/* Input */}
           <div className="px-3 pb-3 pt-2 flex gap-2 flex-shrink-0 bg-white">
             <input type="text" value={input} onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); sendMessage(input); } }}
               placeholder="メッセージを入力..." disabled={chatLoading}
               className="flex-1 rounded-full border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-blue-300 bg-gray-50" />
             <button onClick={() => sendMessage(input)} disabled={chatLoading || !input.trim()}
@@ -719,7 +719,7 @@ export default function Home() {
           <EmptyState icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>} onGoToData={() => setActiveTab("home")} />
         ) : (
           SUBJECTS.map(({ key, label }) => {
-            const rows = w[key] ?? [];
+            const rows = Array.isArray(w[key]) ? w[key] : [];
             return (
               <div key={key} className="bg-white rounded-2xl shadow-sm p-4">
                 <p className="text-sm font-bold text-gray-800 mb-3">{label}</p>
@@ -888,11 +888,24 @@ export default function Home() {
         </div>
       );
     }
+    // testsが空でもaveragesがあればカード表示
+    const hasAvg = ds.averages && ds.averages.total > 0;
 
-    const tests = ds.tests ?? [];
+    const tests = Array.isArray(ds.tests) ? ds.tests : [];
     const avg = ds.averages;
     const best = ds.best;
     const r3 = ds.recent3avg;
+
+    if (!hasAvg && tests.length === 0) {
+      return (
+        <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-5">
+          <h2 className="text-base font-bold text-gray-800">偏差値推移</h2>
+          <div className="bg-white rounded-2xl shadow-sm p-6 text-center">
+            <p className="text-sm text-gray-400 py-4">テストデータが含まれていませんでした。<br />模試や成績表のファイルを追加して再分析してください。</p>
+          </div>
+        </div>
+      );
+    }
 
     // SVG折れ線グラフ（5科目）
     const LINES: { key: keyof Omit<ScoreSet, "total">; color: string; label: string }[] = [
@@ -1029,7 +1042,22 @@ export default function Home() {
         {!analysisResult ? (
           <EmptyState icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3L1 9l4 2.18V17h2v-4.82l1 .55V17c0 2.21 1.79 4 4 4s4-1.79 4-4v-4.27l3 1.64v-1.18L21 12V9L12 3z" /></svg>} onGoToData={() => setActiveTab("home")} />
         ) : schools.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm p-5 text-center"><p className="text-sm text-gray-400 py-4">志望校データがありませんでした</p></div>
+          <div className="bg-white rounded-2xl shadow-sm p-6 flex flex-col items-center gap-4 text-center">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: "#fef7e0" }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="#b45309"><path d="M12 3L1 9l4 2.18V17h2v-4.82l1 .55V17c0 2.21 1.79 4 4 4s4-1.79 4-4v-4.27l3 1.64v-1.18L21 12V9L12 3z" /></svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-700 mb-1">志望校データが見つかりませんでした</p>
+              <p className="text-xs text-gray-400 leading-relaxed">ファイルに志望校情報が含まれていない場合は、<br />AIチャットで志望校を直接伝えてください。</p>
+            </div>
+            <button
+              onClick={() => { setActiveTab("home"); }}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
+              style={{ backgroundColor: NAVY }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
+              AIに志望校を伝える
+            </button>
+          </div>
         ) : (
           schools.map((school, i) => (
             <div key={i} className="bg-white rounded-2xl shadow-sm p-5">
