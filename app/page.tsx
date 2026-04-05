@@ -346,6 +346,13 @@ export default function Home() {
             </svg>
             Googleでログイン
           </button>
+          <p className="text-xs text-gray-400 text-center leading-relaxed">
+            ログインすることで
+            <a href="/terms" className="underline mx-0.5 hover:opacity-70 transition-opacity" style={{ color: NAVY }}>利用規約</a>
+            および
+            <a href="/privacy" className="underline mx-0.5 hover:opacity-70 transition-opacity" style={{ color: NAVY }}>プライバシーポリシー</a>
+            に同意したものとみなします
+          </p>
         </div>
       </div>
     );
