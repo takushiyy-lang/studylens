@@ -191,9 +191,9 @@ export default function Home() {
 
   // Chat
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [isComposing, setIsComposing] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Drive
@@ -212,10 +212,15 @@ export default function Home() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, chatLoading]);
 
-  async function sendMessage(text: string) {
-    if (!text.trim() || chatLoading) return;
+  async function sendMessage(overrideText?: string) {
+    const text = (overrideText ?? inputRef.current?.value ?? "").trim();
+    if (!text || chatLoading || isComposing) return;
+    // テキストエリアをクリア
+    if (!overrideText && inputRef.current) {
+      inputRef.current.value = "";
+      inputRef.current.style.height = "44px";
+    }
     setMessages((prev) => [...prev, { role: "user", content: text }]);
-    setInput("");
     setChatLoading(true);
     try {
       const res = await fetch("/api/chat", {
@@ -230,6 +235,13 @@ export default function Home() {
       setMessages((prev) => [...prev, { role: "assistant", content: "エラーが発生しました。もう一度お試しください。" }]);
     } finally {
       setChatLoading(false);
+    }
+  }
+
+  function setQuickQuestion(text: string) {
+    if (inputRef.current) {
+      inputRef.current.value = text;
+      inputRef.current.focus();
     }
   }
 
@@ -518,7 +530,7 @@ export default function Home() {
           {/* Quick questions */}
           <div className="flex gap-2 px-3 py-2 overflow-x-auto flex-shrink-0 bg-white border-t border-gray-100" style={{ scrollbarWidth: "none" }}>
             {QUICK_QUESTIONS.map((q) => (
-              <button key={q} onClick={() => sendMessage(q)} disabled={chatLoading}
+              <button key={q} onClick={() => setQuickQuestion(q)} disabled={chatLoading}
                 className="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border transition-colors hover:bg-blue-50 disabled:opacity-50"
                 style={{ borderColor: NAVY, color: NAVY }}>{q}</button>
             ))}
@@ -527,22 +539,40 @@ export default function Home() {
           {/* Input */}
           <div className="px-3 pb-3 pt-2 flex gap-2 flex-shrink-0 bg-white items-end">
             <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
+              ref={inputRef}
               onCompositionStart={() => setIsComposing(true)}
               onCompositionEnd={() => setIsComposing(false)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey && !isComposing) {
                   e.preventDefault();
-                  sendMessage(input);
+                  sendMessage();
                 }
               }}
-              placeholder="メッセージを入力...（Shift+Enterで改行）"
+              onInput={(e) => {
+                const el = e.currentTarget;
+                el.style.height = "44px";
+                el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+              }}
+              placeholder="メッセージを入力（Shift+Enterで改行）"
               rows={1}
               disabled={chatLoading}
-              style={{ resize: "none", overflow: "hidden" }}
-              className="flex-1 rounded-2xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-blue-300 bg-gray-50 leading-relaxed" />
-            <button onClick={() => sendMessage(input)} disabled={chatLoading || !input.trim()}
+              style={{
+                flex: 1,
+                padding: "10px 14px",
+                fontSize: "14px",
+                border: "1px solid #e5e7eb",
+                borderRadius: "22px",
+                background: "#f9fafb",
+                outline: "none",
+                resize: "none",
+                minHeight: "44px",
+                maxHeight: "120px",
+                lineHeight: "1.5",
+                fontFamily: "inherit",
+                overflowY: "auto",
+              }}
+            />
+            <button onClick={() => sendMessage()} disabled={chatLoading}
               className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 disabled:opacity-40 transition-opacity"
               style={{ backgroundColor: NAVY }}><SendIcon /></button>
           </div>
