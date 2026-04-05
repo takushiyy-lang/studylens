@@ -205,8 +205,8 @@ export default function Home() {
   // Analysis
   const [analyzeStatus, setAnalyzeStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [analyzeError, setAnalyzeError] = useState("");
+  const [analyzeMessage, setAnalyzeMessage] = useState("");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-  const [routineStatus, setRoutineStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -269,49 +269,48 @@ export default function Home() {
     if (driveFiles.length === 0) return;
     setAnalyzeStatus("loading");
     setAnalyzeError("");
+
     try {
-      const res = await fetch("/api/analyze", {
+      // ── Step 1: 偏差値・弱点分析 ──────────────────────
+      setAnalyzeMessage("偏差値・弱点を分析中...（1/2）");
+      const res1 = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ files: driveFiles }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error((data as { error?: string; detail?: string }).detail ?? (data as { error?: string }).error ?? "分析に失敗しました");
+      const data1 = await res1.json();
+      if (!res1.ok) {
+        throw new Error(
+          (data1 as { detail?: string; error?: string }).detail ??
+          (data1 as { error?: string }).error ??
+          "分析に失敗しました"
+        );
       }
-      if ((data as { _parseError?: boolean })._parseError) {
-        setAnalyzeError("分析結果の解析に一部失敗しましたが、取得できたデータを表示します");
-      }
-      setAnalysisResult(data as AnalysisResult);
-      setAnalyzeStatus("success");
+      // Step1の結果を即座に表示
+      setAnalysisResult(data1 as AnalysisResult);
 
-      // 成功後にルーティン・バックキャストを別途取得
-      setRoutineStatus("loading");
-      fetch("/api/routine", {
+      // ── Step 2: 志望校・ルーティン・バックキャスト ──
+      setAnalyzeMessage("学習プランを作成中...（2/2）");
+      const res2 = await fetch("/api/analyze-detail", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileNames: driveFiles.map((f) => f.name),
-          analysisContext: JSON.stringify({
-            averages: (data as AnalysisResult).deviationScores?.averages,
-            topWeaknesses: [
-              ...((data as AnalysisResult).weaknesses?.sansu?.slice(0, 2) ?? []),
-              ...((data as AnalysisResult).weaknesses?.kokugo?.slice(0, 2) ?? []),
-            ],
-          }),
-        }),
-      })
-        .then((r) => r.json())
-        .then((routineData) => {
-          setAnalysisResult((prev) =>
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            prev ? { ...prev, ...(routineData as any) } : prev
-          );
-          setRoutineStatus("success");
-        })
-        .catch(() => setRoutineStatus("error"));
+        body: JSON.stringify({ files: driveFiles, firstResult: data1 }),
+      });
+      const data2 = await res2.json();
+      if (res2.ok) {
+        setAnalysisResult((prev) =>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          prev ? { ...prev, ...(data2 as any) } : (data2 as AnalysisResult)
+        );
+      } else {
+        console.warn("[handleAnalyze] step2 failed, using step1 result only");
+      }
+
+      setAnalyzeMessage("");
+      setAnalyzeStatus("success");
     } catch (e) {
       setAnalyzeError(e instanceof Error ? e.message : "分析に失敗しました");
+      setAnalyzeMessage("");
       setAnalyzeStatus("error");
     }
   }
@@ -381,6 +380,7 @@ export default function Home() {
 
     // ── AI分析中 ────────────────────────────────────
     if (analyzeStatus === "loading") {
+      const isStep2 = analyzeMessage.includes("2/2");
       return (
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 gap-6">
           <div className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-md" style={{ backgroundColor: NAVY }}>
@@ -391,12 +391,40 @@ export default function Home() {
           </div>
           <div className="text-center">
             <p className="text-lg font-bold text-gray-800 mb-2">AI分析中...</p>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              ファイルを読み取り、弱点・偏差値・志望校を<br />分析しています。通常30〜60秒かかります。
+            <p className="text-sm font-medium mb-1" style={{ color: NAVY }}>
+              {analyzeMessage || "分析を準備中..."}
+            </p>
+            <p className="text-xs text-gray-400 leading-relaxed">
+              通常1〜2分かかります。そのままお待ちください。
             </p>
           </div>
-          <div className="w-full max-w-[240px] h-1.5 bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-full rounded-full animate-pulse" style={{ width: "65%", backgroundColor: NAVY }} />
+          {/* 2段階プログレスバー */}
+          <div className="w-full max-w-[260px] flex flex-col gap-2">
+            <div className="flex justify-between text-[10px] text-gray-400">
+              <span>偏差値・弱点分析</span>
+              <span>学習プラン作成</span>
+            </div>
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: isStep2 ? "100%" : "50%",
+                  backgroundColor: NAVY,
+                }}
+              />
+            </div>
+            <div className="flex justify-between">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: NAVY, fontSize: 8 }}>✓</div>
+                <span className="text-[10px] font-medium" style={{ color: NAVY }}>Step 1</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full flex items-center justify-center" style={{ backgroundColor: isStep2 ? NAVY : "#e5e7eb" }}>
+                  {isStep2 && <svg width="8" height="8" viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="9" strokeOpacity="0.3" /><path d="M21 12a9 9 0 00-9-9" /></svg>}
+                </div>
+                <span className="text-[10px] font-medium" style={{ color: isStep2 ? NAVY : "#9ca3af" }}>Step 2</span>
+              </div>
+            </div>
           </div>
         </div>
       );
@@ -780,10 +808,10 @@ export default function Home() {
     return (
       <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-5">
         <h2 className="text-base font-bold text-gray-800">ルーティーン設計</h2>
-        {routineStatus === "loading" && !routine ? (
+        {analyzeStatus === "loading" && !routine ? (
           <div className="bg-white rounded-2xl shadow-sm p-8 flex flex-col items-center gap-3">
             <SpinnerIcon color={NAVY} />
-            <p className="text-sm text-gray-500">ルーティン・バックキャスト計画を生成中...</p>
+            <p className="text-sm text-gray-500">学習プランを生成中...</p>
           </div>
         ) : !routine ? (
           <EmptyState icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" /></svg>} onGoToData={() => setActiveTab("home")} />
