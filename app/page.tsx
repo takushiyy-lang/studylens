@@ -193,6 +193,7 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [isComposing, setIsComposing] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Drive
@@ -489,11 +490,23 @@ export default function Home() {
           </div>
 
           {/* Input */}
-          <div className="px-3 pb-3 pt-2 flex gap-2 flex-shrink-0 bg-white">
-            <input type="text" value={input} onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); sendMessage(input); } }}
-              placeholder="メッセージを入力..." disabled={chatLoading}
-              className="flex-1 rounded-full border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-blue-300 bg-gray-50" />
+          <div className="px-3 pb-3 pt-2 flex gap-2 flex-shrink-0 bg-white items-end">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={() => setIsComposing(false)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey && !isComposing) {
+                  e.preventDefault();
+                  sendMessage(input);
+                }
+              }}
+              placeholder="メッセージを入力...（Shift+Enterで改行）"
+              rows={1}
+              disabled={chatLoading}
+              style={{ resize: "none", overflow: "hidden" }}
+              className="flex-1 rounded-2xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-blue-300 bg-gray-50 leading-relaxed" />
             <button onClick={() => sendMessage(input)} disabled={chatLoading || !input.trim()}
               className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 disabled:opacity-40 transition-opacity"
               style={{ backgroundColor: NAVY }}><SendIcon /></button>
