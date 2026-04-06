@@ -191,59 +191,6 @@ function evalBadge(evaluation: string) {
   );
 }
 
-// ─── ChatTextarea ──────────────────────────────────────────
-function ChatTextarea({
-  inputRef,
-  isComposing,
-  setIsComposing,
-  onSend,
-  disabled,
-}: {
-  inputRef: React.RefObject<HTMLTextAreaElement | null>;
-  isComposing: boolean;
-  setIsComposing: (v: boolean) => void;
-  onSend: () => void;
-  disabled: boolean;
-}) {
-  return (
-    <textarea
-      ref={inputRef}
-      placeholder="メッセージを入力..."
-      rows={1}
-      disabled={disabled}
-      onCompositionStart={() => setIsComposing(true)}
-      onCompositionEnd={() => setIsComposing(false)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" && !e.shiftKey && !isComposing) {
-          e.preventDefault();
-          onSend();
-        }
-      }}
-      onInput={(e) => {
-        const el = e.currentTarget;
-        el.style.height = "44px";
-        el.style.height = Math.min(el.scrollHeight, 120) + "px";
-      }}
-      style={{
-        flex: 1,
-        padding: "10px 14px",
-        fontSize: "14px",
-        border: "1px solid #ddd",
-        borderRadius: "22px",
-        background: "#f5f5f3",
-        outline: "none",
-        resize: "none",
-        minHeight: "44px",
-        maxHeight: "120px",
-        lineHeight: "1.5",
-        fontFamily: "inherit",
-        overflowY: "auto",
-        cursor: "text",
-      }}
-    />
-  );
-}
-
 // ─── Main Component ────────────────────────────────────────
 export default function Home() {
   const { data: session, status } = useSession();
@@ -252,8 +199,8 @@ export default function Home() {
   // Chat
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
+  const [chatInput, setChatInput] = useState("");
   const [isComposing, setIsComposing] = useState(false);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Drive
@@ -272,14 +219,10 @@ export default function Home() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, chatLoading]);
 
-  async function sendMessage(textOverride?: string) {
-    const text = textOverride || inputRef.current?.value?.trim() || "";
-    if (!text || chatLoading || isComposing) return;
-    // uncontrolled: refを直接クリア（textOverrideのときはクリア不要）
-    if (!textOverride && inputRef.current) {
-      inputRef.current.value = "";
-      inputRef.current.style.height = "44px";
-    }
+  async function handleSend(overrideText?: string) {
+    const text = (overrideText || chatInput).trim();
+    if (!text || chatLoading) return;
+    if (!overrideText) setChatInput("");
     setMessages((prev) => [...prev, { role: "user", content: text }]);
     setChatLoading(true);
     try {
@@ -296,11 +239,6 @@ export default function Home() {
     } finally {
       setChatLoading(false);
     }
-  }
-
-  // クイック質問：直接送信する
-  function handleQuickQuestion(text: string) {
-    sendMessage(text);
   }
 
   async function handleFetchFiles() {
@@ -588,18 +526,66 @@ export default function Home() {
           {/* Quick questions（分析済み） */}
           <div className="flex gap-2 px-3 py-2 overflow-x-auto flex-shrink-0 bg-white border-t border-gray-100" style={{ scrollbarWidth: "none" }}>
             {QUICK_QUESTIONS_AFTER.map((q) => (
-              <button key={q} onClick={() => handleQuickQuestion(q)} disabled={chatLoading}
+              <button key={q} onClick={() => handleSend(q)} disabled={chatLoading}
                 className="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border transition-colors hover:bg-blue-50 disabled:opacity-50"
                 style={{ borderColor: NAVY, color: NAVY }}>{q}</button>
             ))}
           </div>
 
           {/* Input */}
-          <div className="px-3 pb-3 pt-2 flex gap-2 flex-shrink-0 bg-white items-end">
-            <ChatTextarea inputRef={inputRef} isComposing={isComposing} setIsComposing={setIsComposing} onSend={sendMessage} disabled={chatLoading} />
-            <button onClick={() => sendMessage()} disabled={chatLoading}
-              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 disabled:opacity-40 transition-opacity"
-              style={{ backgroundColor: NAVY }}><SendIcon /></button>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center", borderTop: "1px solid #eee", padding: "10px 12px", flexShrink: 0, background: "white" }}>
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={(e) => {
+                setIsComposing(false);
+                setChatInput(e.currentTarget.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !isComposing) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSend();
+                }
+              }}
+              placeholder="メッセージを入力..."
+              disabled={chatLoading}
+              style={{
+                flex: 1,
+                padding: "10px 16px",
+                fontSize: "14px",
+                border: "1px solid #ddd",
+                borderRadius: "24px",
+                outline: "none",
+                background: "#f5f5f3",
+                fontFamily: "inherit",
+                cursor: "text",
+              }}
+            />
+            <button
+              onClick={() => handleSend()}
+              disabled={chatLoading}
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "50%",
+                background: NAVY,
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                opacity: chatLoading ? 0.4 : 1,
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M22 2L11 13" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
         </div>
       );
@@ -799,17 +785,65 @@ export default function Home() {
           {/* Quick questions（未分析） */}
           <div className="flex gap-2 px-3 py-2 overflow-x-auto border-t border-gray-100" style={{ scrollbarWidth: "none" }}>
             {QUICK_QUESTIONS_BEFORE.map((q) => (
-              <button key={q} onClick={() => handleQuickQuestion(q)} disabled={chatLoading}
+              <button key={q} onClick={() => handleSend(q)} disabled={chatLoading}
                 className="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border transition-colors hover:bg-blue-50 disabled:opacity-50"
                 style={{ borderColor: NAVY, color: NAVY }}>{q}</button>
             ))}
           </div>
           {/* Input */}
-          <div className="px-3 pb-3 pt-2 flex gap-2 items-end border-t border-gray-50">
-            <ChatTextarea inputRef={inputRef} isComposing={isComposing} setIsComposing={setIsComposing} onSend={sendMessage} disabled={chatLoading} />
-            <button onClick={() => sendMessage()} disabled={chatLoading}
-              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 disabled:opacity-40 transition-opacity"
-              style={{ backgroundColor: NAVY }}><SendIcon /></button>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center", borderTop: "1px solid #eee", padding: "10px 12px" }}>
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={(e) => {
+                setIsComposing(false);
+                setChatInput(e.currentTarget.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !isComposing) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSend();
+                }
+              }}
+              placeholder="メッセージを入力..."
+              disabled={chatLoading}
+              style={{
+                flex: 1,
+                padding: "10px 16px",
+                fontSize: "14px",
+                border: "1px solid #ddd",
+                borderRadius: "24px",
+                outline: "none",
+                background: "#f5f5f3",
+                fontFamily: "inherit",
+                cursor: "text",
+              }}
+            />
+            <button
+              onClick={() => handleSend()}
+              disabled={chatLoading}
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "50%",
+                background: NAVY,
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                opacity: chatLoading ? 0.4 : 1,
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M22 2L11 13" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
