@@ -24,7 +24,7 @@ export default function PrivacyPage() {
           </div>
 
           <p className="text-sm text-gray-600 leading-relaxed">
-            吉田拓史（以下「運営者」）は、StudyLens（以下「本サービス」）における利用者の個人情報の取り扱いについて、以下のとおりプライバシーポリシーを定めます。
+            株式会社ACTASIA（以下「運営者」）は、StudyLens（以下「本サービス」）における利用者の個人情報の取り扱いについて、以下のとおりプライバシーポリシーを定めます。
           </p>
 
           {/* セクションリスト */}
@@ -33,8 +33,8 @@ export default function PrivacyPage() {
               title: "1. 運営者",
               content: (
                 <p className="text-sm text-gray-600 leading-relaxed">
-                  吉田拓史<br />
-                  お問い合わせ：<a href="mailto:takushiyy@gmail.com" className="underline" style={{ color: NAVY }}>takushiyy@gmail.com</a>
+                  株式会社ACTASIA<br />
+                  お問い合わせ：<a href="mailto:studylens@actasia.biz" className="underline" style={{ color: NAVY }}>studylens@actasia.biz</a>
                 </p>
               ),
             },
@@ -109,7 +109,7 @@ export default function PrivacyPage() {
               content: (
                 <p className="text-sm text-gray-600 leading-relaxed">
                   本ポリシーに関するお問い合わせは下記までご連絡ください。<br />
-                  <a href="mailto:takushiyy@gmail.com" className="underline mt-1 inline-block" style={{ color: NAVY }}>takushiyy@gmail.com</a>
+                  <a href="mailto:studylens@actasia.biz" className="underline mt-1 inline-block" style={{ color: NAVY }}>studylens@actasia.biz</a>
                 </p>
               ),
             },
@@ -122,7 +122,7 @@ export default function PrivacyPage() {
 
           {/* フッター */}
           <div className="border-t border-gray-100 pt-5 flex items-center justify-between">
-            <p className="text-xs text-gray-400">StudyLens — 運営者：吉田拓史</p>
+            <p className="text-xs text-gray-400">StudyLens — 運営者：株式会社ACTASIA</p>
             <Link href="/terms" className="text-xs underline" style={{ color: NAVY }}>利用規約</Link>
           </div>
         </div>

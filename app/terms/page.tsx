@@ -24,7 +24,7 @@ export default function TermsPage() {
           </div>
 
           <p className="text-sm text-gray-600 leading-relaxed">
-            本利用規約（以下「本規約」）は、吉田拓史（以下「運営者」）が提供するStudyLens（以下「本サービス」）の利用条件を定めるものです。本サービスをご利用になる前に、本規約をよくお読みください。
+            本利用規約（以下「本規約」）は、株式会社ACTASIA（以下「運営者」）が提供するStudyLens（以下「本サービス」）の利用条件を定めるものです。本サービスをご利用になる前に、本規約をよくお読みください。
           </p>
 
           {[
@@ -110,7 +110,7 @@ export default function TermsPage() {
               content: (
                 <p className="text-sm text-gray-600 leading-relaxed">
                   本規約に関するお問い合わせは下記までご連絡ください。<br />
-                  <a href="mailto:takushiyy@gmail.com" className="underline mt-1 inline-block" style={{ color: NAVY }}>takushiyy@gmail.com</a>
+                  <a href="mailto:studylens@actasia.biz" className="underline mt-1 inline-block" style={{ color: NAVY }}>studylens@actasia.biz</a>
                 </p>
               ),
             },
@@ -123,7 +123,7 @@ export default function TermsPage() {
 
           {/* フッター */}
           <div className="border-t border-gray-100 pt-5 flex items-center justify-between">
-            <p className="text-xs text-gray-400">StudyLens — 運営者：吉田拓史</p>
+            <p className="text-xs text-gray-400">StudyLens — 運営者：株式会社ACTASIA</p>
             <Link href="/privacy" className="text-xs underline" style={{ color: NAVY }}>プライバシーポリシー</Link>
           </div>
         </div>

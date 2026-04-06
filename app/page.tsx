@@ -1215,7 +1215,12 @@ export default function Home() {
             <button onClick={() => signOut()} className="text-gray-400 text-xs hover:text-gray-600 transition-colors flex-shrink-0">ログアウト</button>
           </div>
         </aside>
-        <div className="flex-1 flex flex-col overflow-hidden min-h-0">{tabContent[activeTab]}</div>
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+          {tabContent[activeTab]}
+          <footer style={{ textAlign: "center", padding: "12px", fontSize: "11px", color: "#aaa", borderTop: "0.5px solid #eee", background: "white", flexShrink: 0 }}>
+            © 2026 株式会社ACTASIA
+          </footer>
+        </div>
       </div>
 
       {/* Mobile */}
@@ -1239,6 +1244,9 @@ export default function Home() {
             );
           })}
         </nav>
+        <footer style={{ textAlign: "center", padding: "12px", fontSize: "11px", color: "#aaa", borderTop: "0.5px solid #eee", background: "white", flexShrink: 0 }}>
+          © 2026 株式会社ACTASIA
+        </footer>
       </div>
     </div>
   );
