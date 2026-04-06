@@ -2,6 +2,7 @@
 
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useState, useRef, useEffect } from "react";
+import ChatInput from "./components/ChatInput";
 
 type Message = { role: "user" | "assistant"; content: string };
 type Tab = "home" | "data" | "weakness" | "routine" | "trend" | "school";
@@ -199,8 +200,6 @@ export default function Home() {
   // Chat
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
-  const [chatInput, setChatInput] = useState("");
-  const [isComposing, setIsComposing] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Drive
@@ -219,10 +218,8 @@ export default function Home() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, chatLoading]);
 
-  async function handleSend(overrideText?: string) {
-    const text = (overrideText || chatInput).trim();
+  async function handleChatSend(text: string) {
     if (!text || chatLoading) return;
-    if (!overrideText) setChatInput("");
     setMessages((prev) => [...prev, { role: "user", content: text }]);
     setChatLoading(true);
     try {
@@ -523,70 +520,8 @@ export default function Home() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Quick questions（分析済み） */}
-          <div className="flex gap-2 px-3 py-2 overflow-x-auto flex-shrink-0 bg-white border-t border-gray-100" style={{ scrollbarWidth: "none" }}>
-            {QUICK_QUESTIONS_AFTER.map((q) => (
-              <button key={q} onClick={() => handleSend(q)} disabled={chatLoading}
-                className="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border transition-colors hover:bg-blue-50 disabled:opacity-50"
-                style={{ borderColor: NAVY, color: NAVY }}>{q}</button>
-            ))}
-          </div>
-
-          {/* Input */}
-          <div style={{ display: "flex", gap: "8px", alignItems: "center", borderTop: "1px solid #eee", padding: "10px 12px", flexShrink: 0, background: "white" }}>
-            <input
-              type="text"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              onCompositionStart={() => setIsComposing(true)}
-              onCompositionEnd={(e) => {
-                setIsComposing(false);
-                setChatInput(e.currentTarget.value);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !isComposing) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleSend();
-                }
-              }}
-              placeholder="メッセージを入力..."
-              disabled={chatLoading}
-              style={{
-                flex: 1,
-                padding: "10px 16px",
-                fontSize: "14px",
-                border: "1px solid #ddd",
-                borderRadius: "24px",
-                outline: "none",
-                background: "#f5f5f3",
-                fontFamily: "inherit",
-                cursor: "text",
-              }}
-            />
-            <button
-              onClick={() => handleSend()}
-              disabled={chatLoading}
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                background: NAVY,
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                opacity: chatLoading ? 0.4 : 1,
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M22 2L11 13" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </div>
+          {/* Chat Input（分析済み） */}
+          <ChatInput onSend={handleChatSend} loading={chatLoading} suggestions={QUICK_QUESTIONS_AFTER} />
         </div>
       );
     }
@@ -782,69 +717,8 @@ export default function Home() {
             )}
             <div ref={bottomRef} />
           </div>
-          {/* Quick questions（未分析） */}
-          <div className="flex gap-2 px-3 py-2 overflow-x-auto border-t border-gray-100" style={{ scrollbarWidth: "none" }}>
-            {QUICK_QUESTIONS_BEFORE.map((q) => (
-              <button key={q} onClick={() => handleSend(q)} disabled={chatLoading}
-                className="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border transition-colors hover:bg-blue-50 disabled:opacity-50"
-                style={{ borderColor: NAVY, color: NAVY }}>{q}</button>
-            ))}
-          </div>
-          {/* Input */}
-          <div style={{ display: "flex", gap: "8px", alignItems: "center", borderTop: "1px solid #eee", padding: "10px 12px" }}>
-            <input
-              type="text"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              onCompositionStart={() => setIsComposing(true)}
-              onCompositionEnd={(e) => {
-                setIsComposing(false);
-                setChatInput(e.currentTarget.value);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !isComposing) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleSend();
-                }
-              }}
-              placeholder="メッセージを入力..."
-              disabled={chatLoading}
-              style={{
-                flex: 1,
-                padding: "10px 16px",
-                fontSize: "14px",
-                border: "1px solid #ddd",
-                borderRadius: "24px",
-                outline: "none",
-                background: "#f5f5f3",
-                fontFamily: "inherit",
-                cursor: "text",
-              }}
-            />
-            <button
-              onClick={() => handleSend()}
-              disabled={chatLoading}
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                background: NAVY,
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                opacity: chatLoading ? 0.4 : 1,
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M22 2L11 13" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </div>
+          {/* Chat Input（未分析） */}
+          <ChatInput onSend={handleChatSend} loading={chatLoading} suggestions={QUICK_QUESTIONS_BEFORE} />
         </div>
       </div>
     );
