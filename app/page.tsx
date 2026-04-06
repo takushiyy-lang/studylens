@@ -76,13 +76,20 @@ type AnalysisResult = {
   _parseError?: boolean;
 };
 
-const QUICK_QUESTIONS = [
+const QUICK_QUESTIONS_BEFORE = [
+  "何から始めればいいですか？",
+  "このアプリの使い方を教えて",
+  "中学受験の勉強法を教えて",
+  "志望校選びのポイントは？",
+  "毎日の勉強時間はどのくらい？",
+];
+
+const QUICK_QUESTIONS_AFTER = [
+  "最も優先すべき弱点は？",
+  "今週の学習計画を立てて",
+  "志望校合格に向けた戦略を教えて",
+  "算数の比・割合の勉強法は？",
   "国語の読解力を上げるには？",
-  "算数の比・割合の解き方を教えて",
-  "毎日の勉強ルーティーンを作りたい",
-  "志望校の合格戦略を立てて",
-  "過去問の使い方を教えて",
-  "模試の復習方法は？",
 ];
 
 const NAVY = "#0C447C";
@@ -184,6 +191,59 @@ function evalBadge(evaluation: string) {
   );
 }
 
+// ─── ChatTextarea ──────────────────────────────────────────
+function ChatTextarea({
+  inputRef,
+  isComposing,
+  setIsComposing,
+  onSend,
+  disabled,
+}: {
+  inputRef: React.RefObject<HTMLTextAreaElement | null>;
+  isComposing: boolean;
+  setIsComposing: (v: boolean) => void;
+  onSend: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <textarea
+      ref={inputRef}
+      placeholder="メッセージを入力..."
+      rows={1}
+      disabled={disabled}
+      onCompositionStart={() => setIsComposing(true)}
+      onCompositionEnd={() => setIsComposing(false)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && !e.shiftKey && !isComposing) {
+          e.preventDefault();
+          onSend();
+        }
+      }}
+      onInput={(e) => {
+        const el = e.currentTarget;
+        el.style.height = "44px";
+        el.style.height = Math.min(el.scrollHeight, 120) + "px";
+      }}
+      style={{
+        flex: 1,
+        padding: "10px 14px",
+        fontSize: "14px",
+        border: "1px solid #ddd",
+        borderRadius: "22px",
+        background: "#f5f5f3",
+        outline: "none",
+        resize: "none",
+        minHeight: "44px",
+        maxHeight: "120px",
+        lineHeight: "1.5",
+        fontFamily: "inherit",
+        overflowY: "auto",
+        cursor: "text",
+      }}
+    />
+  );
+}
+
 // ─── Main Component ────────────────────────────────────────
 export default function Home() {
   const { data: session, status } = useSession();
@@ -212,11 +272,11 @@ export default function Home() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, chatLoading]);
 
-  async function sendMessage(overrideText?: string) {
-    const text = (overrideText ?? inputRef.current?.value ?? "").trim();
+  async function sendMessage(textOverride?: string) {
+    const text = textOverride || inputRef.current?.value?.trim() || "";
     if (!text || chatLoading || isComposing) return;
-    // テキストエリアをクリア
-    if (!overrideText && inputRef.current) {
+    // uncontrolled: refを直接クリア（textOverrideのときはクリア不要）
+    if (!textOverride && inputRef.current) {
       inputRef.current.value = "";
       inputRef.current.style.height = "44px";
     }
@@ -238,11 +298,9 @@ export default function Home() {
     }
   }
 
-  function setQuickQuestion(text: string) {
-    if (inputRef.current) {
-      inputRef.current.value = text;
-      inputRef.current.focus();
-    }
+  // クイック質問：直接送信する
+  function handleQuickQuestion(text: string) {
+    sendMessage(text);
   }
 
   async function handleFetchFiles() {
@@ -375,7 +433,7 @@ export default function Home() {
 
   const tabs: { id: Tab; label: string; Icon: React.FC<{ active: boolean }> }[] = [
     { id: "home",     label: "ホーム",    Icon: HomeIcon },
-    { id: "data",     label: "データ",    Icon: DataIcon },
+    { id: "data",     label: "追加読込",  Icon: DataIcon },
     { id: "weakness", label: "弱点",      Icon: WeaknessIcon },
     { id: "routine",  label: "ルーティン", Icon: RoutineIcon },
     { id: "trend",    label: "推移",      Icon: TrendIcon },
@@ -495,7 +553,7 @@ export default function Home() {
             {messages.length === 0 && (
               <div className="flex justify-start">
                 <div className="max-w-[80%] px-4 py-2.5 text-sm leading-relaxed text-gray-800" style={{ backgroundColor: "#f0f0f0", borderRadius: "18px 18px 18px 0px" }}>
-                  分析が完了しました🎉<br />各タブで詳しい結果を確認するか、勉強の疑問を何でも聞いてください！
+                  分析が完了しました🎉<br />各タブで詳しい結果を確認するか、勉強の疑問を何でも聞いてください！成績に合わせた個別アドバイスができます。
                 </div>
               </div>
             )}
@@ -527,10 +585,10 @@ export default function Home() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Quick questions */}
+          {/* Quick questions（分析済み） */}
           <div className="flex gap-2 px-3 py-2 overflow-x-auto flex-shrink-0 bg-white border-t border-gray-100" style={{ scrollbarWidth: "none" }}>
-            {QUICK_QUESTIONS.map((q) => (
-              <button key={q} onClick={() => setQuickQuestion(q)} disabled={chatLoading}
+            {QUICK_QUESTIONS_AFTER.map((q) => (
+              <button key={q} onClick={() => handleQuickQuestion(q)} disabled={chatLoading}
                 className="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border transition-colors hover:bg-blue-50 disabled:opacity-50"
                 style={{ borderColor: NAVY, color: NAVY }}>{q}</button>
             ))}
@@ -538,40 +596,7 @@ export default function Home() {
 
           {/* Input */}
           <div className="px-3 pb-3 pt-2 flex gap-2 flex-shrink-0 bg-white items-end">
-            <textarea
-              ref={inputRef}
-              onCompositionStart={() => setIsComposing(true)}
-              onCompositionEnd={() => setIsComposing(false)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey && !isComposing) {
-                  e.preventDefault();
-                  sendMessage();
-                }
-              }}
-              onInput={(e) => {
-                const el = e.currentTarget;
-                el.style.height = "44px";
-                el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
-              }}
-              placeholder="メッセージを入力（Shift+Enterで改行）"
-              rows={1}
-              disabled={chatLoading}
-              style={{
-                flex: 1,
-                padding: "10px 14px",
-                fontSize: "14px",
-                border: "1px solid #e5e7eb",
-                borderRadius: "22px",
-                background: "#f9fafb",
-                outline: "none",
-                resize: "none",
-                minHeight: "44px",
-                maxHeight: "120px",
-                lineHeight: "1.5",
-                fontFamily: "inherit",
-                overflowY: "auto",
-              }}
-            />
+            <ChatTextarea inputRef={inputRef} isComposing={isComposing} setIsComposing={setIsComposing} onSend={sendMessage} disabled={chatLoading} />
             <button onClick={() => sendMessage()} disabled={chatLoading}
               className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 disabled:opacity-40 transition-opacity"
               style={{ backgroundColor: NAVY }}><SendIcon /></button>
@@ -722,6 +747,71 @@ export default function Home() {
             </div>
           </div>
         )}
+
+        {/* チャット（未分析状態でも使える） */}
+        <div className="bg-white rounded-2xl shadow-sm flex flex-col overflow-hidden" style={{ minHeight: 280 }}>
+          {/* Chat header */}
+          <div className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 flex-shrink-0">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: NAVY }}><BarChartIcon /></div>
+            <div>
+              <p className="text-sm font-semibold text-gray-800">StudyLens AI</p>
+              <p className="text-xs" style={{ color: "#22c55e" }}>● オンライン</p>
+            </div>
+          </div>
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-2" style={{ maxHeight: 260 }}>
+            {messages.length === 0 && (
+              <div className="flex justify-start">
+                <div className="max-w-[85%] px-4 py-2.5 text-sm leading-relaxed text-gray-800" style={{ backgroundColor: "#f0f0f0", borderRadius: "18px 18px 18px 0px" }}>
+                  こんにちは！StudyLens AIです。<br />
+                  中学受験の勉強について何でも聞いてください。<br />
+                  データを読み込むと、お子様の成績に合わせた個別アドバイスができるようになります。
+                </div>
+              </div>
+            )}
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                {msg.role === "assistant" && (
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mr-2 self-end" style={{ backgroundColor: NAVY }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><rect x="3" y="12" width="3" height="9" rx="0.5" /><rect x="9" y="7" width="3" height="14" rx="0.5" /><rect x="15" y="3" width="3" height="18" rx="0.5" /></svg>
+                  </div>
+                )}
+                <div className="max-w-[75%] px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap"
+                  style={msg.role === "user"
+                    ? { backgroundColor: NAVY, color: "white", borderRadius: "18px 18px 0px 18px" }
+                    : { backgroundColor: "#f0f0f0", color: "#1f2937", borderRadius: "18px 18px 18px 0px" }}>
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            {chatLoading && (
+              <div className="flex justify-start items-end gap-2">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: NAVY }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><rect x="3" y="12" width="3" height="9" rx="0.5" /><rect x="9" y="7" width="3" height="14" rx="0.5" /><rect x="15" y="3" width="3" height="18" rx="0.5" /></svg>
+                </div>
+                <div className="px-4 py-3 flex items-center gap-1" style={{ backgroundColor: "#f0f0f0", borderRadius: "18px 18px 18px 0px" }}>
+                  <TypingDot delay={0} /><TypingDot delay={0.2} /><TypingDot delay={0.4} />
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+          {/* Quick questions（未分析） */}
+          <div className="flex gap-2 px-3 py-2 overflow-x-auto border-t border-gray-100" style={{ scrollbarWidth: "none" }}>
+            {QUICK_QUESTIONS_BEFORE.map((q) => (
+              <button key={q} onClick={() => handleQuickQuestion(q)} disabled={chatLoading}
+                className="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border transition-colors hover:bg-blue-50 disabled:opacity-50"
+                style={{ borderColor: NAVY, color: NAVY }}>{q}</button>
+            ))}
+          </div>
+          {/* Input */}
+          <div className="px-3 pb-3 pt-2 flex gap-2 items-end border-t border-gray-50">
+            <ChatTextarea inputRef={inputRef} isComposing={isComposing} setIsComposing={setIsComposing} onSend={sendMessage} disabled={chatLoading} />
+            <button onClick={() => sendMessage()} disabled={chatLoading}
+              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 disabled:opacity-40 transition-opacity"
+              style={{ backgroundColor: NAVY }}><SendIcon /></button>
+          </div>
+        </div>
       </div>
     );
   };
@@ -729,21 +819,27 @@ export default function Home() {
   // ─── Data Tab ──────────────────────────────────────────
   const DataTab = () => (
     <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-4">
-      <h2 className="text-base font-bold text-gray-800">データ再取込み</h2>
+      <div>
+        <h2 className="text-base font-bold text-gray-800">追加データの読み込み</h2>
+        <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+          すでに読み込んだデータに追加してさらに詳しく分析できます。<br />
+          新しいテスト結果や模試のデータをGoogle Driveから追加してください。
+        </p>
+      </div>
 
       {analyzeStatus === "success" ? (
-        /* 分析済み：取込済みファイルの確認 + 再取込みボタン */
+        /* 分析済み：現在の取込済みファイルと追加読み込みボタン */
         <div className="bg-white rounded-2xl shadow-sm p-5 flex flex-col gap-4">
-          <div className="flex items-center gap-3 pb-1">
+          <div className="flex items-center gap-3 pb-1 border-b border-gray-50">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#f0fdf4" }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="#16a34a"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-800">取込済み：{driveFiles.length}件</p>
+              <p className="text-sm font-semibold text-gray-800">現在の取込済み：{driveFiles.length}件</p>
               <p className="text-xs text-gray-400">AI分析が完了しています</p>
             </div>
           </div>
-          <div className="rounded-xl border border-gray-100 overflow-hidden" style={{ maxHeight: 240, overflowY: "auto" }}>
+          <div className="rounded-xl border border-gray-100 overflow-hidden" style={{ maxHeight: 200, overflowY: "auto" }}>
             {driveFiles.map((file) => (
               <div key={file.id} className="flex items-center gap-3 px-3 py-2.5 border-b border-gray-50 last:border-0">
                 <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -756,7 +852,8 @@ export default function Home() {
           <button onClick={() => setActiveTab("home")}
             className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-opacity hover:opacity-90 flex items-center justify-center gap-2"
             style={{ backgroundColor: NAVY }}>
-            ホームで再取込み
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
+            ホームで追加データを読み込む
           </button>
         </div>
       ) : (
@@ -768,7 +865,7 @@ export default function Home() {
           <div>
             <p className="text-base font-bold text-gray-800 mb-2">データをまだ取り込んでいません</p>
             <p className="text-sm text-gray-500 leading-relaxed">
-              ホームからGoogle DriveのURLを入力して<br />AI分析を開始しましょう。
+              まずホームからGoogle DriveのURLを入力して<br />最初のAI分析を開始しましょう。
             </p>
           </div>
           <button onClick={() => setActiveTab("home")}
