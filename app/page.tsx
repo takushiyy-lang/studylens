@@ -530,10 +530,10 @@ export default function Home() {
     const step = fileListStatus === "success" && driveFiles.length > 0 ? 2 : 1;
 
     return (
-      <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-4">
+      <div className="flex-1 overflow-hidden px-4 py-5 flex flex-col gap-4">
 
         {/* Step indicator */}
-        <div className="flex items-center px-2 gap-0">
+        <div className="flex items-center px-2 gap-0 flex-shrink-0">
           {/* Step 1 */}
           <div className="flex flex-col items-center gap-1">
             <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
@@ -563,7 +563,7 @@ export default function Home() {
 
         {/* ── Step 2: ファイル確認 ── */}
         {step === 2 ? (
-          <div className="bg-white rounded-2xl shadow-sm p-5 flex flex-col gap-4">
+          <div className="bg-white rounded-2xl shadow-sm p-5 flex flex-col gap-4 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#f0fdf4" }}>
@@ -607,7 +607,7 @@ export default function Home() {
           </div>
         ) : (
           /* ── Step 1: Drive接続 ── */
-          <div className="bg-white rounded-2xl shadow-sm p-6 flex flex-col gap-5">
+          <div className="bg-white rounded-2xl shadow-sm p-6 flex flex-col gap-5 flex-shrink-0">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#f8f9ff" }}>
                 <DriveIcon />
@@ -648,29 +648,8 @@ export default function Home() {
           </div>
         )}
 
-        {/* Features showcase（Step 1のみ） */}
-        {step === 1 && (
-          <div className="bg-white rounded-2xl shadow-sm p-5">
-            <p className="text-sm font-bold text-gray-700 mb-4">StudyLensでできること</p>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { bg: "#e8f0fe", color: NAVY,      icon: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z",  title: "弱点分析",    desc: "科目・単元ごとの弱点を特定" },
-                { bg: "#e6f4ea", color: "#15803d", icon: "M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z",                                    title: "偏差値推移",  desc: "模試の成績を可視化" },
-                { bg: "#fef7e0", color: "#b45309", icon: "M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2h-1V1h-2zm3 18H5V8h14v11z", title: "ルーティン",   desc: "最適な学習スケジュール" },
-                { bg: "#fce8e6", color: "#c5221f", icon: "M12 3L1 9l4 2.18V17h2v-4.82l1 .55V17c0 2.21 1.79 4 4 4s4-1.79 4-4v-4.27l3 1.64v-1.18L21 12V9L12 3z",  title: "志望校分析",  desc: "合格可能性と対策を提案" },
-              ].map(({ bg, color, icon, title, desc }) => (
-                <div key={title} className="rounded-xl p-3.5" style={{ backgroundColor: bg }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill={color} className="mb-2"><path d={icon} /></svg>
-                  <p className="text-xs font-bold mb-0.5" style={{ color }}>{title}</p>
-                  <p className="text-[11px] text-gray-500 leading-tight">{desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* チャット（未分析状態でも使える） */}
-        <div className="bg-white rounded-2xl shadow-sm flex flex-col overflow-hidden" style={{ minHeight: 280 }}>
+        <div className="bg-white rounded-2xl shadow-sm flex flex-col overflow-hidden flex-1 min-h-0">
           {/* Chat header */}
           <div className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 flex-shrink-0">
             <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: NAVY }}><BarChartIcon /></div>
@@ -680,7 +659,7 @@ export default function Home() {
             </div>
           </div>
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-2" style={{ maxHeight: 260 }}>
+          <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3 flex flex-col gap-2">
             {messages.length === 0 && (
               <div className="flex justify-start">
                 <div className="max-w-[85%] px-4 py-2.5 text-sm leading-relaxed text-gray-800" style={{ backgroundColor: "#f0f0f0", borderRadius: "18px 18px 18px 0px" }}>
