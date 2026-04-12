@@ -5,6 +5,9 @@ import SessionProvider from "./SessionProvider";
 export const metadata: Metadata = {
   title: "StudyLens",
   description: "AIによる学習サポートアプリ",
+  verification: {
+    google: "tMQSoq4wQR-gRnP3nGwG1sLs3syFG67QNq4QZ9d4J48",
+  },
 };
 
 export default function RootLayout({
