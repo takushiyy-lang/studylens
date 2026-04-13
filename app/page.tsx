@@ -3,6 +3,7 @@
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useState, useRef, useEffect } from "react";
 import ChatInput from "./components/ChatInput";
+import { useGooglePicker } from "./components/DriveFilePicker";
 
 type Message = { role: "user" | "assistant"; content: string };
 type Tab = "home" | "data" | "weakness" | "routine" | "trend";
@@ -138,11 +139,6 @@ function fileMimeLabel(mimeType: string) {
   if (mimeType.startsWith("text/")) return "TXT";
   return "FILE";
 }
-function extractFolderId(url: string) {
-  const m = url.match(/\/folders\/([a-zA-Z0-9_-]+)/);
-  return m ? m[1] : null;
-}
-
 function priorityBadge(priority: string) {
   const map: Record<string, { bg: string; text: string }> = {
     最高: { bg: "#fee2e2", text: "#dc2626" },
@@ -185,7 +181,7 @@ export default function Home() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Drive
-  const [driveUrl, setDriveUrl] = useState("");
+  const accessToken = ((session as unknown as Record<string, unknown>)?.accessToken as string) ?? ""
   const [fileListStatus, setFileListStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [fileListError, setFileListError] = useState("");
   const [driveFiles, setDriveFiles] = useState<DriveFile[]>([]);
@@ -220,37 +216,13 @@ export default function Home() {
     }
   }
 
-  async function handleFetchFiles() {
-    const folderId = extractFolderId(driveUrl);
-    if (!folderId) {
-      setFileListStatus("error");
-      setFileListError("有効なGoogle DriveフォルダのURLを入力してください");
-      return;
-    }
-    setFileListStatus("loading");
-    setDriveFiles([]);
-    setFileListError("");
-    setAnalyzeStatus("idle");
-    setAnalysisResult(null);
-    try {
-      const res = await fetch(`/api/drive?folderId=${folderId}`);
-      if (res.status === 401) {
-        setFileListStatus("error");
-        setFileListError("Google Driveへのアクセス権限がありません。再ログインしてください。");
-        return;
-      }
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { error?: string }).error ?? "ファイル一覧の取得に失敗しました");
-      }
-      const data = await res.json();
-      setDriveFiles(data.files ?? []);
-      setFileListStatus("success");
-    } catch (e) {
-      setFileListStatus("error");
-      setFileListError(e instanceof Error ? e.message : "エラーが発生しました");
-    }
-  }
+  const { openPicker } = useGooglePicker(accessToken, (files) => {
+    setDriveFiles(files)
+    setFileListStatus("success")
+    setFileListError("")
+    setAnalyzeStatus("idle")
+    setAnalysisResult(null)
+  })
 
   async function handleAnalyze() {
     if (driveFiles.length === 0) return;
@@ -446,7 +418,7 @@ export default function Home() {
                 {label} →
               </button>
             ))}
-            <button onClick={resetDrive}
+            <button onClick={() => { resetDrive(); openPicker(); }}
               className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-400 hover:text-gray-600 transition-colors ml-1">
               再取込み
             </button>
@@ -552,7 +524,7 @@ export default function Home() {
                   <p className="text-xs text-gray-400">AIが分析できる状態です</p>
                 </div>
               </div>
-              <button onClick={resetDrive} className="text-xs text-blue-500 hover:text-blue-700 transition-colors">
+              <button onClick={openPicker} className="text-xs text-blue-500 hover:text-blue-700 transition-colors">
                 変更
               </button>
             </div>
@@ -591,19 +563,10 @@ export default function Home() {
                 <DriveIcon />
               </div>
               <div>
-                <p className="text-base font-bold text-gray-800">Google Driveを接続</p>
-                <p className="text-xs text-gray-500">模試・テスト結果が入ったフォルダのURLを入力</p>
+                <p className="text-base font-bold text-gray-800">テストファイルを選択</p>
+                <p className="text-xs text-gray-500">Google Driveからファイルを選んでください（複数選択可）</p>
               </div>
             </div>
-
-            <input
-              type="url"
-              value={driveUrl}
-              onChange={(e) => { setDriveUrl(e.target.value); if (fileListStatus === "error") setFileListStatus("idle"); }}
-              placeholder="https://drive.google.com/drive/folders/..."
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-300 disabled:bg-gray-50"
-              disabled={fileListStatus === "loading"}
-            />
 
             {fileListStatus === "error" && (
               <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ backgroundColor: "#fef2f2" }}>
@@ -613,16 +576,13 @@ export default function Home() {
             )}
 
             <button
-              onClick={handleFetchFiles}
-              disabled={fileListStatus === "loading" || !driveUrl.trim()}
-              className="w-full py-3.5 rounded-xl text-white font-bold text-sm transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+              onClick={openPicker}
+              className="w-full py-3.5 rounded-xl text-white font-bold text-sm transition-opacity hover:opacity-90 flex items-center justify-center gap-2"
               style={{ backgroundColor: NAVY }}>
-              {fileListStatus === "loading" ? (
-                <><SpinnerIcon />取得中...</>
-              ) : (
-                <>ファイルを取得する<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z" /></svg></>
-              )}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M19 15v4H5v-4H3v4c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-4h-2zm-6-2.83l2.59 2.58L17 13.17l-5-5-5 5 1.41 1.41L11 12.17V17h2v-4.83z" /></svg>
+              Google Driveからファイルを選択
             </button>
+            <p className="text-center text-xs text-gray-400">テスト結果のファイルをまとめて選択してください</p>
           </div>
         )}
 
@@ -730,7 +690,7 @@ export default function Home() {
           <div>
             <p className="text-base font-bold text-gray-800 mb-2">データをまだ取り込んでいません</p>
             <p className="text-sm text-gray-500 leading-relaxed">
-              まずホームからGoogle DriveのURLを入力して<br />最初のAI分析を開始しましょう。
+              まずホームからGoogle Driveのファイルを選択して<br />最初のAI分析を開始しましょう。
             </p>
           </div>
           <button onClick={() => setActiveTab("home")}
@@ -1149,7 +1109,7 @@ function EmptyState({ icon, onGoToData }: { icon: React.ReactNode; onGoToData: (
     <div className="flex-1 flex flex-col items-center justify-center py-16 px-6 text-center bg-white rounded-2xl shadow-sm">
       <div className="mb-4 opacity-60">{icon}</div>
       <p className="text-base font-semibold text-gray-700 mb-2">まだデータがありません</p>
-      <p className="text-xs text-gray-400 leading-relaxed mb-6">ホームからGoogle DriveのURLを入力して<br />AI分析を開始すると自動で表示されます</p>
+      <p className="text-xs text-gray-400 leading-relaxed mb-6">ホームでGoogle Driveのファイルを選択して<br />AI分析を開始すると自動で表示されます</p>
       <button onClick={onGoToData} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90" style={{ backgroundColor: "#0C447C" }}>
         ホームで分析する
         <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z" /></svg>
