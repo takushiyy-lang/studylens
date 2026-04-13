@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import ChatInput from "./components/ChatInput";
 
 type Message = { role: "user" | "assistant"; content: string };
-type Tab = "home" | "data" | "weakness" | "routine" | "trend" | "school";
+type Tab = "home" | "data" | "weakness" | "routine" | "trend";
 
 type DriveFile = { id: string; name: string; mimeType: string; size?: string };
 
@@ -33,18 +33,6 @@ type TestScore = {
 
 type ScoreSet = { kokugo: number; sansu: number; rika: number; shakai: number; total: number };
 
-type SchoolJudgment = {
-  name: string;
-  tag: string;
-  currentJudgment: string;
-  pointsToA: string;
-  strongSubjects: string;
-  weakSubjects: string;
-  strategy: string;
-  decisionTiming: string;
-  diffs: { kokugo: number; sansu: number; rika: number; shakai: number };
-};
-
 type RoutineItem = { time: string; subject: string; importance: string; menu: string; detail: string };
 type RoutinePhase = { period: string; reading: string; vocabulary: string };
 
@@ -64,7 +52,6 @@ type AnalysisResult = {
     rika: WeaknessEntry[];
     shakai: WeaknessEntry[];
   };
-  schoolJudgments: SchoolJudgment[];
   routine?: {
     summary: string;
     items: RoutineItem[];
@@ -81,14 +68,12 @@ const QUICK_QUESTIONS_BEFORE = [
   "何から始めればいいですか？",
   "このアプリの使い方を教えて",
   "中学受験の勉強法を教えて",
-  "志望校選びのポイントは？",
   "毎日の勉強時間はどのくらい？",
 ];
 
 const QUICK_QUESTIONS_AFTER = [
   "最も優先すべき弱点は？",
   "今週の学習計画を立てて",
-  "志望校合格に向けた戦略を教えて",
   "算数の比・割合の勉強法は？",
   "国語の読解力を上げるには？",
 ];
@@ -120,9 +105,6 @@ function RoutineIcon({ active }: { active: boolean }) {
 }
 function TrendIcon({ active }: { active: boolean }) {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill={active ? NAVY : "#9ca3af"}><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z" /></svg>;
-}
-function SchoolIcon({ active }: { active: boolean }) {
-  return <svg width="20" height="20" viewBox="0 0 24 24" fill={active ? NAVY : "#9ca3af"}><path d="M12 3L1 9l4 2.18V17h2v-4.82l1 .55V17c0 2.21 1.79 4 4 4s4-1.79 4-4v-4.27l3 1.64v-1.18L21 12V9L12 3zm6.18 6L12 12.72 5.82 9 12 5.28 18.18 9zM16 17c0 1.1-.9 2-2 2H10c-1.1 0-2-.9-2-2v-3.45l4 2.19 4-2.19V17z" /></svg>;
 }
 function SendIcon() {
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>;
@@ -372,13 +354,11 @@ export default function Home() {
     { id: "weakness", label: "弱点",      Icon: WeaknessIcon },
     { id: "routine",  label: "ルーティン", Icon: RoutineIcon },
     { id: "trend",    label: "推移",      Icon: TrendIcon },
-    { id: "school",   label: "志望校",    Icon: SchoolIcon },
   ];
 
   // ─── Home Tab ──────────────────────────────────────────
   const HomeTab = () => {
     const avg = analysisResult?.deviationScores?.averages;
-    const topSchool = analysisResult?.schoolJudgments?.[0];
     const topWeak = analysisResult?.weaknesses?.sansu?.[0] ?? analysisResult?.weaknesses?.kokugo?.[0];
 
     function resetDrive() {
@@ -449,7 +429,6 @@ export default function Home() {
           {/* Stats */}
           <div className="grid grid-cols-2 gap-3 px-4 pt-4 pb-2 flex-shrink-0">
             <StatCard label="4科偏差値"    value={avg ? String(avg.total) : "—"} sub={avg ? `算${avg.sansu}・国${avg.kokugo}` : "データなし"} color="#e8f0fe" textColor={NAVY} />
-            <StatCard label="第一志望判定"  value={topSchool?.currentJudgment ?? "—"} sub={topSchool?.name ?? "データなし"} color="#e6f4ea" textColor="#137333" />
             <StatCard label="取込ファイル数" value={driveFiles.length > 0 ? String(driveFiles.length) : "—"} sub={driveFiles.length > 0 ? "取込済み" : "データなし"} color="#fef7e0" textColor="#b45309" />
             <StatCard label="最優先弱点"    value={topWeak?.unit ?? "—"} sub={topWeak ? `正答率 ${topWeak.avgCorrectRate}` : "データなし"} color="#fce8e6" textColor="#c5221f" />
           </div>
@@ -460,7 +439,6 @@ export default function Home() {
               { tab: "weakness" as Tab, label: "弱点分析",  bg: "#fee2e2", color: "#dc2626" },
               { tab: "trend"    as Tab, label: "偏差値推移", bg: "#e8f0fe", color: NAVY },
               { tab: "routine"  as Tab, label: "ルーティン", bg: "#e6f4ea", color: "#15803d" },
-              { tab: "school"   as Tab, label: "志望校",     bg: "#fef7e0", color: "#b45309" },
             ]).map(({ tab, label, bg, color }) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
                 className="flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
@@ -1095,96 +1073,9 @@ export default function Home() {
     );
   };
 
-  // ─── School Tab ───────────────────────────────────────
-  const SchoolTab = () => {
-    const schools = analysisResult?.schoolJudgments ?? [];
-    return (
-      <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-5">
-        <h2 className="text-base font-bold text-gray-800">志望校分析</h2>
-        {!analysisResult ? (
-          <EmptyState icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3L1 9l4 2.18V17h2v-4.82l1 .55V17c0 2.21 1.79 4 4 4s4-1.79 4-4v-4.27l3 1.64v-1.18L21 12V9L12 3z" /></svg>} onGoToData={() => setActiveTab("home")} />
-        ) : schools.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm p-6 flex flex-col items-center gap-4 text-center">
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: "#fef7e0" }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="#b45309"><path d="M12 3L1 9l4 2.18V17h2v-4.82l1 .55V17c0 2.21 1.79 4 4 4s4-1.79 4-4v-4.27l3 1.64v-1.18L21 12V9L12 3z" /></svg>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-700 mb-1">志望校データが見つかりませんでした</p>
-              <p className="text-xs text-gray-400 leading-relaxed">ファイルに志望校情報が含まれていない場合は、<br />AIチャットで志望校を直接伝えてください。</p>
-            </div>
-            <button
-              onClick={() => { setActiveTab("home"); }}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
-              style={{ backgroundColor: NAVY }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
-              AIに志望校を伝える
-            </button>
-          </div>
-        ) : (
-          schools.map((school, i) => (
-            <div key={i} className="bg-white rounded-2xl shadow-sm p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="text-sm font-bold text-gray-800">{school.name}</p>
-                  <p className="text-xs text-gray-500">{school.tag}</p>
-                </div>
-                <span className="text-sm font-bold px-3 py-1 rounded-full"
-                  style={{
-                    backgroundColor: school.currentJudgment === "A判定" ? "#dcfce7" : school.currentJudgment === "B判定" ? "#fef9c3" : "#fee2e2",
-                    color: school.currentJudgment === "A判定" ? "#15803d" : school.currentJudgment === "B判定" ? "#92400e" : "#dc2626",
-                  }}>
-                  {school.currentJudgment}
-                </span>
-              </div>
-
-              {/* 科目別差分 */}
-              {school.diffs && (
-                <div className="grid grid-cols-4 gap-2 mb-3">
-                  {(["kokugo", "sansu", "rika", "shakai"] as const).map((k) => {
-                    const v = school.diffs[k];
-                    const label = k === "kokugo" ? "国語" : k === "sansu" ? "算数" : k === "rika" ? "理科" : "社会";
-                    return (
-                      <div key={k} className="text-center rounded-lg py-1.5" style={{ backgroundColor: "#f8faff" }}>
-                        <p className="text-xs text-gray-400">{label}</p>
-                        <p className="text-xs font-bold" style={{ color: v > 0 ? "#dc2626" : "#15803d" }}>
-                          {v > 0 ? `+${v}` : v}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div className="flex gap-2 text-xs mb-3">
-                {school.strongSubjects && (
-                  <span className="px-2 py-1 rounded-full" style={{ backgroundColor: "#dcfce7", color: "#15803d" }}>強: {school.strongSubjects}</span>
-                )}
-                {school.weakSubjects && (
-                  <span className="px-2 py-1 rounded-full" style={{ backgroundColor: "#fee2e2", color: "#dc2626" }}>弱: {school.weakSubjects}</span>
-                )}
-              </div>
-
-              <div className="rounded-xl p-3 mb-2" style={{ backgroundColor: "#f8faff" }}>
-                <p className="text-xs text-gray-500 mb-1">対策方針</p>
-                <p className="text-sm text-gray-700 leading-relaxed">{school.strategy}</p>
-              </div>
-
-              {school.decisionTiming && (
-                <div className="flex items-center gap-1.5">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#6b7280"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z" /></svg>
-                  <span className="text-xs text-gray-500">判断時期: {school.decisionTiming}</span>
-                </div>
-              )}
-            </div>
-          ))
-        )}
-      </div>
-    );
-  };
-
   const tabContent: Record<Tab, React.ReactNode> = {
     home: <HomeTab />, data: <DataTab />, weakness: <WeaknessTab />,
-    routine: <RoutineTab />, trend: <TrendTab />, school: <SchoolTab />,
+    routine: <RoutineTab />, trend: <TrendTab />,
   };
 
   // ─── Layout ───────────────────────────────────────────
