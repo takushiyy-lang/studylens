@@ -48,6 +48,7 @@ export function useGooglePicker(
     const view = new window.google.picker.DocsView()
       .setIncludeFolders(true)
       .setSelectFolderEnabled(false)
+      .setParent('root')
 
     const picker = new window.google.picker.PickerBuilder()
       .addView(view)
