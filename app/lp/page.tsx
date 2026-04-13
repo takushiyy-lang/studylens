@@ -7,6 +7,31 @@ const LIGHT_NAVY = "#1a5c9e";
 export default function LandingPage() {
   return (
     <div style={{ fontFamily: "'Hiragino Sans', 'Noto Sans JP', sans-serif", color: "#1a1a2e", overflowX: "hidden" }}>
+      <style>{`
+        @media (max-width: 767px) {
+          .lp-nav-link { display: none !important; }
+          .lp-hero-section { padding: 48px 20px 60px !important; }
+          .lp-hero-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
+          .lp-hero-mock { display: none !important; }
+          .lp-hero-h1 { font-size: 28px !important; }
+          .lp-pain-grid { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
+          .lp-pain-cta { padding: 24px 20px !important; font-size: 18px !important; }
+          .lp-section-pad { padding: 48px 20px !important; }
+          .lp-feature-grid { grid-template-columns: 1fr !important; direction: ltr !important; gap: 28px !important; margin-bottom: 48px !important; }
+          .lp-feature-grid > div[style*="direction"] { direction: ltr !important; }
+          .lp-steps-grid { grid-template-columns: 1fr !important; }
+          .lp-data-tip { flex-direction: column !important; padding: 20px !important; }
+          .lp-data-tip-badges { flex-direction: row !important; flex-wrap: wrap !important; }
+          .lp-security-grid { grid-template-columns: 1fr 1fr !important; }
+          .lp-personal-grid { grid-template-columns: 1fr !important; }
+          .lp-data-flow { flex-direction: column !important; }
+          .lp-footer-top { flex-direction: column !important; gap: 16px !important; }
+          .lp-footer-links { flex-direction: column !important; gap: 16px !important; }
+          .lp-cta-h2 { font-size: 26px !important; }
+          .lp-feedback-box { padding: 24px 20px !important; }
+          .lp-price-card { padding: 32px 24px !important; }
+        }
+      `}</style>
 
       {/* ── ナビゲーション ── */}
       <nav style={{ position: "sticky", top: 0, zIndex: 50, background: "white", borderBottom: "1px solid #e5e7eb", padding: "0 24px" }}>
@@ -23,8 +48,8 @@ export default function LandingPage() {
             <span style={{ fontWeight: 800, fontSize: 20, color: NAVY }}>StudyLens</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <Link href="#features" style={{ fontSize: 14, color: "#4b5563", textDecoration: "none" }}>機能</Link>
-            <Link href="#howto" style={{ fontSize: 14, color: "#4b5563", textDecoration: "none" }}>使い方</Link>
+            <Link href="#features" className="lp-nav-link" style={{ fontSize: 14, color: "#4b5563", textDecoration: "none" }}>機能</Link>
+            <Link href="#howto" className="lp-nav-link" style={{ fontSize: 14, color: "#4b5563", textDecoration: "none" }}>使い方</Link>
             <Link href="/" style={{ fontSize: 14, fontWeight: 700, color: "white", background: NAVY, padding: "8px 20px", borderRadius: 24, textDecoration: "none" }}>
               無料で始める
             </Link>
@@ -33,17 +58,17 @@ export default function LandingPage() {
       </nav>
 
       {/* ── ヒーロー ── */}
-      <section style={{ background: `linear-gradient(135deg, ${NAVY} 0%, #1a5c9e 50%, #0e6db5 100%)`, padding: "80px 24px 100px", position: "relative", overflow: "hidden" }}>
+      <section className="lp-hero-section" style={{ background: `linear-gradient(135deg, ${NAVY} 0%, #1a5c9e 50%, #0e6db5 100%)`, padding: "80px 24px 100px", position: "relative", overflow: "hidden" }}>
         {/* 背景装飾 */}
         <div style={{ position: "absolute", top: -80, right: -80, width: 400, height: 400, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
         <div style={{ position: "absolute", bottom: -100, left: -60, width: 300, height: 300, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
 
-        <div style={{ maxWidth: 1080, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center" }}>
+        <div className="lp-hero-grid" style={{ maxWidth: 1080, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center" }}>
           <div>
             <div style={{ display: "inline-block", background: "rgba(255,255,255,0.15)", borderRadius: 20, padding: "6px 16px", fontSize: 13, color: "rgba(255,255,255,0.9)", fontWeight: 600, marginBottom: 20 }}>
               🎯 中学受験専用 AI学習サポート
             </div>
-            <h1 style={{ fontSize: 42, fontWeight: 900, color: "white", lineHeight: 1.25, marginBottom: 20 }}>
+            <h1 className="lp-hero-h1" style={{ fontSize: 42, fontWeight: 900, color: "white", lineHeight: 1.25, marginBottom: 20 }}>
               子どもの成績データから<br />
               <span style={{ color: "#7dd3fc" }}>最短合格ルート</span>を<br />
               AIが導き出す
@@ -68,7 +93,7 @@ export default function LandingPage() {
           </div>
 
           {/* アプリスクリーンショット */}
-          <div style={{ position: "relative" }}>
+          <div className="lp-hero-mock" style={{ position: "relative" }}>
             <div style={{ background: "white", borderRadius: 20, overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,0.35)", transform: "perspective(1000px) rotateY(-5deg) rotateX(2deg)" }}>
               {/* モック画面 */}
               <div style={{ background: NAVY, padding: "12px 16px", display: "flex", alignItems: "center", gap: 8 }}>
@@ -114,13 +139,13 @@ export default function LandingPage() {
       </section>
 
       {/* ── 共感セクション ── */}
-      <section style={{ background: "#fff8f0", padding: "72px 24px" }}>
+      <section className="lp-section-pad" style={{ background: "#fff8f0", padding: "72px 24px" }}>
         <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
           <h2 style={{ fontSize: 28, fontWeight: 800, color: "#1a1a2e", marginBottom: 16 }}>
             こんなお悩み、ありませんか？
           </h2>
           <p style={{ color: "#6b7280", fontSize: 15, marginBottom: 48 }}>中学受験を控えたお子さまを持つ保護者の声</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
+          <div className="lp-pain-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
             {[
               { emoji: "😟", text: "模試の結果を見ても、何から手をつければいいか分からない" },
               { emoji: "📊", text: "偏差値が上がったり下がったり、成績の波の原因が分からない" },
@@ -145,7 +170,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── 機能紹介 ── */}
-      <section id="features" style={{ padding: "80px 24px", background: "white" }}>
+      <section id="features" className="lp-section-pad" style={{ padding: "80px 24px", background: "white" }}>
         <div style={{ maxWidth: 1080, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 60 }}>
             <div style={{ display: "inline-block", background: "#e8f0fe", borderRadius: 20, padding: "6px 16px", fontSize: 13, color: NAVY, fontWeight: 600, marginBottom: 16 }}>
@@ -157,7 +182,7 @@ export default function LandingPage() {
           </div>
 
           {/* 機能1：弱点分析 */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center", marginBottom: 80 }}>
+          <div className="lp-feature-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center", marginBottom: 80 }}>
             <div>
               <div style={{ display: "inline-block", background: "#fee2e2", borderRadius: 8, padding: "4px 12px", fontSize: 12, color: "#dc2626", fontWeight: 700, marginBottom: 16 }}>弱点分析</div>
               <h3 style={{ fontSize: 26, fontWeight: 800, color: "#1a1a2e", marginBottom: 16, lineHeight: 1.4 }}>
@@ -205,7 +230,7 @@ export default function LandingPage() {
           </div>
 
           {/* 機能2：偏差値推移 */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center", marginBottom: 80, direction: "rtl" }}>
+          <div className="lp-feature-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center", marginBottom: 80, direction: "rtl" }}>
             <div style={{ direction: "ltr" }}>
               <div style={{ display: "inline-block", background: "#e8f0fe", borderRadius: 8, padding: "4px 12px", fontSize: 12, color: NAVY, fontWeight: 700, marginBottom: 16 }}>偏差値推移</div>
               <h3 style={{ fontSize: 26, fontWeight: 800, color: "#1a1a2e", marginBottom: 16, lineHeight: 1.4 }}>
@@ -252,7 +277,7 @@ export default function LandingPage() {
           </div>
 
           {/* 機能3：ルーティン */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center", marginBottom: 80 }}>
+          <div className="lp-feature-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center", marginBottom: 80 }}>
             <div>
               <div style={{ display: "inline-block", background: "#e6f4ea", borderRadius: 8, padding: "4px 12px", fontSize: 12, color: "#15803d", fontWeight: 700, marginBottom: 16 }}>学習ルーティン</div>
               <h3 style={{ fontSize: 26, fontWeight: 800, color: "#1a1a2e", marginBottom: 16, lineHeight: 1.4 }}>
@@ -290,7 +315,7 @@ export default function LandingPage() {
           </div>
 
           {/* 機能4：AIチャット */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center", direction: "rtl" }}>
+          <div className="lp-feature-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center", direction: "rtl" }}>
             <div style={{ direction: "ltr" }}>
               <div style={{ display: "inline-block", background: "#f0f9ff", borderRadius: 8, padding: "4px 12px", fontSize: 12, color: "#0369a1", fontWeight: 700, marginBottom: 16 }}>AIチャット</div>
               <h3 style={{ fontSize: 26, fontWeight: 800, color: "#1a1a2e", marginBottom: 16, lineHeight: 1.4 }}>
@@ -345,7 +370,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── 使い方 ── */}
-      <section id="howto" style={{ background: "#f8faff", padding: "80px 24px" }}>
+      <section id="howto" className="lp-section-pad" style={{ background: "#f8faff", padding: "80px 24px" }}>
         <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
           <div style={{ display: "inline-block", background: "#e8f0fe", borderRadius: 20, padding: "6px 16px", fontSize: 13, color: NAVY, fontWeight: 600, marginBottom: 16 }}>
             使い方
@@ -353,7 +378,7 @@ export default function LandingPage() {
           <h2 style={{ fontSize: 34, fontWeight: 900, color: "#1a1a2e", marginBottom: 56 }}>
             たった3ステップで<br />AI分析がスタート
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+          <div className="lp-steps-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
             {[
               {
                 step: "01",
@@ -399,7 +424,7 @@ export default function LandingPage() {
       {/* ── データ精度のヒント ── */}
       <section style={{ background: `linear-gradient(135deg, #e8f0fe, #f0fdf4)`, padding: "40px 24px" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <div style={{ background: "white", borderRadius: 20, padding: "28px 36px", display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap", boxShadow: "0 4px 20px rgba(12,68,124,0.08)" }}>
+          <div className="lp-data-tip" style={{ background: "white", borderRadius: 20, padding: "28px 36px", display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap", boxShadow: "0 4px 20px rgba(12,68,124,0.08)" }}>
             <div style={{ fontSize: 48, flexShrink: 0 }}>📈</div>
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: 18, fontWeight: 800, color: "#1a1a2e", marginBottom: 6 }}>
@@ -410,7 +435,7 @@ export default function LandingPage() {
                 過去のテストをまとめてGoogle Driveに入れ、一気に読み込ませてみてください。
               </p>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
+            <div className="lp-data-tip-badges" style={{ display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
               {[["1〜3枚", "基本的な弱点把握", "#fef7e0", "#b45309"], ["5〜10枚", "パターン分析が可能", "#e8f0fe", NAVY], ["10枚以上", "高精度な個別最適化", "#e6f4ea", "#15803d"]].map(([count, label, bg, color]) => (
                 <div key={count} style={{ display: "flex", alignItems: "center", gap: 8, background: bg, borderRadius: 8, padding: "6px 14px" }}>
                   <span style={{ fontSize: 12, fontWeight: 800, color }}>{count}</span>
@@ -423,7 +448,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── データの安全性・個人情報 ── */}
-      <section style={{ background: "#f8faff", padding: "80px 24px" }}>
+      <section className="lp-section-pad" style={{ background: "#f8faff", padding: "80px 24px" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 48 }}>
             <div style={{ display: "inline-block", background: "#e8f0fe", borderRadius: 20, padding: "6px 16px", fontSize: 13, color: NAVY, fontWeight: 600, marginBottom: 16 }}>
@@ -434,7 +459,7 @@ export default function LandingPage() {
             </h2>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, marginBottom: 32 }}>
+          <div className="lp-security-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, marginBottom: 32 }}>
             {[
               { icon: "🔒", title: "読み取り専用アクセス", body: "Google Driveへのアクセスは「読み取り専用」です。アプリがファイルを編集・削除・移動することは一切ありません。" },
               { icon: "🚫", title: "サーバーへの保存なし", body: "テスト結果ファイルの内容はサーバーに保存されません。分析のためにAIに送信後、即座に破棄されます。" },
@@ -454,7 +479,7 @@ export default function LandingPage() {
           {/* 個人情報の取り扱い */}
           <div style={{ background: "white", borderRadius: 20, padding: "32px 36px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", marginBottom: 24 }}>
             <p style={{ fontSize: 16, fontWeight: 800, color: "#1f2937", marginBottom: 20 }}>個人情報の取り扱いについて</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div className="lp-personal-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               {[
                 { label: "取得する情報", value: "Googleアカウントの氏名・メールアドレスのみ", ok: true },
                 { label: "取得しない情報", value: "住所・電話番号・クレジットカード等の個人情報は一切収集しません", ok: true },
@@ -479,7 +504,7 @@ export default function LandingPage() {
           {/* データフロー図 */}
           <div style={{ background: "white", borderRadius: 20, padding: "32px 40px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
             <p style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: "#1f2937", marginBottom: 24 }}>データの流れ</p>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
+            <div className="lp-data-flow" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
               {[
                 { label: "Google Drive", sub: "ユーザーが選択したファイルのみ", color: "#e8f0fe", icon: "📁" },
                 { label: "→", sub: "読み取り専用", color: "transparent", icon: "" },
@@ -510,7 +535,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: 600, margin: "0 auto", textAlign: "center" }}>
           <h2 style={{ fontSize: 32, fontWeight: 900, color: "#1a1a2e", marginBottom: 12 }}>シンプルな料金体系</h2>
           <p style={{ color: "#6b7280", marginBottom: 48 }}>今なら完全無料でお使いいただけます</p>
-          <div style={{ background: `linear-gradient(135deg, ${NAVY}, #1a5c9e)`, borderRadius: 24, padding: "48px 40px", color: "white", position: "relative", overflow: "hidden" }}>
+          <div className="lp-price-card" style={{ background: `linear-gradient(135deg, ${NAVY}, #1a5c9e)`, borderRadius: 24, padding: "48px 40px", color: "white", position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: -40, right: -40, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
             <div style={{ display: "inline-block", background: "rgba(255,255,255,0.15)", borderRadius: 20, padding: "6px 20px", fontSize: 14, fontWeight: 700, marginBottom: 20 }}>
               完全無料
@@ -534,7 +559,7 @@ export default function LandingPage() {
       {/* ── テスト版・フィードバック ── */}
       <section style={{ background: "white", padding: "64px 24px" }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 20, padding: "36px 40px", textAlign: "center" }}>
+          <div className="lp-feedback-box" style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 20, padding: "36px 40px", textAlign: "center" }}>
             <div style={{ display: "inline-block", background: "#fef3c7", borderRadius: 20, padding: "6px 16px", fontSize: 13, color: "#92400e", fontWeight: 700, marginBottom: 16 }}>
               🚧 テスト版公開中
             </div>
@@ -567,7 +592,7 @@ export default function LandingPage() {
       {/* ── CTA ── */}
       <section style={{ background: `linear-gradient(135deg, ${NAVY}, #0e6db5)`, padding: "80px 24px", textAlign: "center" }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 36, fontWeight: 900, color: "white", marginBottom: 16, lineHeight: 1.3 }}>
+          <h2 className="lp-cta-h2" style={{ fontSize: 36, fontWeight: 900, color: "white", marginBottom: 16, lineHeight: 1.3 }}>
             今すぐAI分析を始めて<br />合格への最短ルートを見つけよう
           </h2>
           <p style={{ fontSize: 16, color: "rgba(255,255,255,0.85)", marginBottom: 40 }}>
@@ -583,7 +608,7 @@ export default function LandingPage() {
       {/* ── フッター ── */}
       <footer style={{ background: "#0a1628", padding: "40px 24px 24px", color: "rgba(255,255,255,0.5)" }}>
         <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32, flexWrap: "wrap", gap: 24 }}>
+          <div className="lp-footer-top" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32, flexWrap: "wrap", gap: 24 }}>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                 <svg width="24" height="24" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill={NAVY}/><rect x="4" y="20" width="5" height="8" rx="1.5" fill="white"/><rect x="11" y="14" width="5" height="14" rx="1.5" fill="white"/><rect x="18" y="9" width="5" height="19" rx="1.5" fill="white"/></svg>
@@ -591,7 +616,7 @@ export default function LandingPage() {
               </div>
               <p style={{ fontSize: 13, lineHeight: 1.6 }}>AIで中学受験をサポート</p>
             </div>
-            <div style={{ display: "flex", gap: 32 }}>
+            <div className="lp-footer-links" style={{ display: "flex", gap: 32 }}>
               <div>
                 <p style={{ color: "white", fontSize: 13, fontWeight: 700, marginBottom: 12 }}>リンク</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
