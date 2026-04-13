@@ -46,18 +46,13 @@ export function useGooglePicker(
     }
 
     const view = new window.google.picker.DocsView()
-      .setMimeTypes([
-        'application/vnd.google-apps.document',
-        'application/vnd.google-apps.spreadsheet',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'text/plain',
-        'text/csv',
-      ].join(','))
-      .setIncludeFolders(false)
+      .setIncludeFolders(true)
+      .setSelectFolderEnabled(false)
 
     const picker = new window.google.picker.PickerBuilder()
       .addView(view)
       .enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED)
+      .setTitle('テストファイルを選択（複数選択可）')
       .setOAuthToken(accessToken)
       .setDeveloperKey(apiKey)
       .setCallback((data: { action: string; docs?: Array<{ id: string; name: string; mimeType: string }> }) => {
