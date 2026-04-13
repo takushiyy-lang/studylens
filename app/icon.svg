@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- 背景 -->
+  <rect width="32" height="32" rx="8" fill="#0C447C"/>
+  <!-- グラフの棒（白） -->
+  <rect x="5" y="18" width="4" height="8" rx="1" fill="white" opacity="0.9"/>
+  <rect x="11" y="13" width="4" height="13" rx="1" fill="white" opacity="0.9"/>
+  <rect x="17" y="8" width="4" height="18" rx="1" fill="white" opacity="0.9"/>
+  <!-- 虫眼鏡 -->
+  <circle cx="24" cy="10" r="4.5" fill="none" stroke="#4FC3F7" stroke-width="2"/>
+  <line x1="27.2" y1="13.2" x2="30" y2="16" stroke="#4FC3F7" stroke-width="2" stroke-linecap="round"/>
+</svg>
