@@ -204,6 +204,13 @@ export default function Home() {
   const [analyzeMessage, setAnalyzeMessage] = useState("");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
 
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMobileModal, setShowMobileModal] = useState(false);
+  useEffect(() => {
+    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+  }, []);
+
   // localStorage からデータを復元
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -273,6 +280,15 @@ export default function Home() {
   function openPickerAppend() {
     pickerAppendMode.current = true;
     openPicker();
+  }
+
+  function handleOpenPicker() {
+    if (isMobile) { setShowMobileModal(true); return; }
+    openPicker();
+  }
+  function handleOpenPickerAppend() {
+    if (isMobile) { setShowMobileModal(true); return; }
+    openPickerAppend();
   }
 
   async function runAnalyze(files: DriveFile[]) {
@@ -472,7 +488,7 @@ export default function Home() {
                 {label} →
               </button>
             ))}
-            <button onClick={() => { resetDrive(); openPicker(); }}
+            <button onClick={() => { resetDrive(); handleOpenPicker(); }}
               className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-400 hover:text-gray-600 transition-colors ml-1">
               再取込み
             </button>
@@ -597,7 +613,7 @@ export default function Home() {
                   <p className="text-xs text-gray-400">AIが分析できる状態です</p>
                 </div>
               </div>
-              <button onClick={openPicker} className="text-xs text-blue-500 hover:text-blue-700 transition-colors">
+              <button onClick={handleOpenPicker} className="text-xs text-blue-500 hover:text-blue-700 transition-colors">
                 変更
               </button>
             </div>
@@ -649,7 +665,7 @@ export default function Home() {
             )}
 
             <button
-              onClick={openPicker}
+              onClick={handleOpenPicker}
               className="w-full py-3.5 rounded-xl text-white font-bold text-sm transition-opacity hover:opacity-90 flex items-center justify-center gap-2"
               style={{ backgroundColor: NAVY }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M19 15v4H5v-4H3v4c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-4h-2zm-6-2.83l2.59 2.58L17 13.17l-5-5-5 5 1.41 1.41L11 12.17V17h2v-4.83z" /></svg>
@@ -747,7 +763,7 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <button onClick={openPickerAppend}
+          <button onClick={handleOpenPickerAppend}
             className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-opacity hover:opacity-90 flex items-center justify-center gap-2"
             style={{ backgroundColor: NAVY }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M19 15v4H5v-4H3v4c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-4h-2zm-6-2.83l2.59 2.58L17 13.17l-5-5-5 5 1.41 1.41L11 12.17V17h2v-4.83z" /></svg>
@@ -1172,6 +1188,31 @@ export default function Home() {
           © 2026 株式会社ACTASIA
         </footer>
       </div>
+
+      {/* モバイル: ファイル選択非対応モーダル */}
+      {showMobileModal && (
+        <div
+          onClick={() => setShowMobileModal(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: "white", borderRadius: 20, padding: "36px 28px", maxWidth: 340, width: "100%", textAlign: "center", boxShadow: "0 24px 60px rgba(0,0,0,0.3)" }}>
+            <div style={{ fontSize: 52, marginBottom: 16 }}>💻</div>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: "#1f2937", marginBottom: 12, lineHeight: 1.4 }}>
+              PCブラウザでご利用ください
+            </h3>
+            <p style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.8, marginBottom: 24 }}>
+              Google Driveのファイル選択は<br />モバイルブラウザに対応していません。<br /><br />
+              PCでファイルを読み込んだ後は、<br />スマートフォンでも分析結果を<br />確認できます。
+            </p>
+            <button
+              onClick={() => setShowMobileModal(false)}
+              style={{ background: NAVY, color: "white", border: "none", borderRadius: 12, padding: "12px 36px", fontWeight: 700, fontSize: 14, cursor: "pointer", width: "100%" }}>
+              閉じる
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
