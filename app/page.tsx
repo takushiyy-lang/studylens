@@ -192,6 +192,31 @@ export default function Home() {
   const [analyzeMessage, setAnalyzeMessage] = useState("");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
 
+  // localStorage からデータを復元
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    try {
+      const savedFiles = localStorage.getItem("studylens_files");
+      const savedResult = localStorage.getItem("studylens_result");
+      if (savedFiles && savedResult) {
+        setDriveFiles(JSON.parse(savedFiles));
+        setAnalysisResult(JSON.parse(savedResult));
+        setFileListStatus("success");
+        setAnalyzeStatus("success");
+      }
+    } catch {}
+  }, [status]);
+
+  // 分析完了時に localStorage へ保存
+  useEffect(() => {
+    if (analyzeStatus === "success" && analysisResult) {
+      try {
+        localStorage.setItem("studylens_files", JSON.stringify(driveFiles));
+        localStorage.setItem("studylens_result", JSON.stringify(analysisResult));
+      } catch {}
+    }
+  }, [analyzeStatus, analysisResult, driveFiles]);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, chatLoading]);
@@ -216,26 +241,39 @@ export default function Home() {
     }
   }
 
-  const { openPicker } = useGooglePicker(accessToken, (files) => {
-    setDriveFiles(files)
-    setFileListStatus("success")
-    setFileListError("")
-    setAnalyzeStatus("idle")
-    setAnalysisResult(null)
-  })
+  const pickerAppendMode = useRef(false);
 
-  async function handleAnalyze() {
-    if (driveFiles.length === 0) return;
+  const { openPicker } = useGooglePicker(accessToken, (files) => {
+    if (pickerAppendMode.current) {
+      pickerAppendMode.current = false;
+      const merged = [...driveFiles, ...files.filter(f => !driveFiles.some(e => e.id === f.id))];
+      setDriveFiles(merged);
+      runAnalyze(merged);
+    } else {
+      setDriveFiles(files);
+      setFileListStatus("success");
+      setFileListError("");
+      setAnalyzeStatus("idle");
+      setAnalysisResult(null);
+    }
+  });
+
+  function openPickerAppend() {
+    pickerAppendMode.current = true;
+    openPicker();
+  }
+
+  async function runAnalyze(files: DriveFile[]) {
+    if (files.length === 0) return;
     setAnalyzeStatus("loading");
     setAnalyzeError("");
 
     try {
-      // ── Step 1: 偏差値・弱点分析 ──────────────────────
       setAnalyzeMessage("偏差値・弱点を分析中...（1/2）");
       const res1 = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ files: driveFiles }),
+        body: JSON.stringify({ files }),
       });
       const data1 = await res1.json();
       if (!res1.ok) {
@@ -245,15 +283,13 @@ export default function Home() {
           "分析に失敗しました"
         );
       }
-      // Step1の結果を即座に表示
       setAnalysisResult(data1 as AnalysisResult);
 
-      // ── Step 2: 志望校・ルーティン・バックキャスト ──
       setAnalyzeMessage("学習プランを作成中...（2/2）");
       const res2 = await fetch("/api/analyze-detail", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ files: driveFiles, firstResult: data1 }),
+        body: JSON.stringify({ files, firstResult: data1 }),
       });
       const data2 = await res2.json();
       if (res2.ok) {
@@ -272,6 +308,10 @@ export default function Home() {
       setAnalyzeMessage("");
       setAnalyzeStatus("error");
     }
+  }
+
+  function handleAnalyze() {
+    runAnalyze(driveFiles);
   }
 
   // Loading
@@ -334,6 +374,8 @@ export default function Home() {
     const topWeak = analysisResult?.weaknesses?.sansu?.[0] ?? analysisResult?.weaknesses?.kokugo?.[0];
 
     function resetDrive() {
+      localStorage.removeItem("studylens_files");
+      localStorage.removeItem("studylens_result");
       setFileListStatus("idle");
       setDriveFiles([]);
       setFileListError("");
@@ -674,11 +716,11 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <button onClick={() => setActiveTab("home")}
+          <button onClick={openPickerAppend}
             className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-opacity hover:opacity-90 flex items-center justify-center gap-2"
             style={{ backgroundColor: NAVY }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
-            ホームで追加データを読み込む
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M19 15v4H5v-4H3v4c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-4h-2zm-6-2.83l2.59 2.58L17 13.17l-5-5-5 5 1.41 1.41L11 12.17V17h2v-4.83z" /></svg>
+            Google Driveから追加読み込み
           </button>
         </div>
       ) : (
@@ -690,7 +732,7 @@ export default function Home() {
           <div>
             <p className="text-base font-bold text-gray-800 mb-2">データをまだ取り込んでいません</p>
             <p className="text-sm text-gray-500 leading-relaxed">
-              まずホームからGoogle Driveのファイルを選択して<br />最初のAI分析を開始しましょう。
+              まずホームでGoogle Driveのファイルを選択して<br />最初のAI分析を開始しましょう。
             </p>
           </div>
           <button onClick={() => setActiveTab("home")}

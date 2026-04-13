@@ -395,6 +395,88 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── データの安全性 ── */}
+      <section style={{ background: "#f8faff", padding: "80px 24px" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 48 }}>
+            <div style={{ display: "inline-block", background: "#e8f0fe", borderRadius: 20, padding: "6px 16px", fontSize: 13, color: NAVY, fontWeight: 600, marginBottom: 16 }}>
+              データの安全性
+            </div>
+            <h2 style={{ fontSize: 32, fontWeight: 900, color: "#1a1a2e" }}>
+              お子さまのデータを<br />安全に取り扱います
+            </h2>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, marginBottom: 40 }}>
+            {[
+              {
+                icon: "🔒",
+                title: "読み取り専用アクセス",
+                body: "Google Driveへのアクセスは「読み取り専用」です。アプリがファイルを編集・削除・移動することは一切ありません。",
+              },
+              {
+                icon: "🚫",
+                title: "サーバーへの保存なし",
+                body: "テスト結果ファイルの内容はサーバーに保存されません。分析のためにAIに送信後、即座に破棄されます。",
+              },
+              {
+                icon: "🤖",
+                title: "AI分析のみに使用",
+                body: "読み込んだデータはAnthropicのClaude AIによる成績分析のみに使用します。第三者への提供や広告利用は行いません。",
+              },
+              {
+                icon: "🔐",
+                title: "Google認証で保護",
+                body: "ログインはGoogleの公式OAuth認証を使用。パスワードはStudyLensに渡らず、Googleが直接管理します。",
+              },
+              {
+                icon: "📁",
+                title: "選択ファイルのみ",
+                body: "アクセスできるのはユーザーが明示的に選択したファイルのみです。Drive全体を閲覧することはありません。",
+              },
+              {
+                icon: "🗑️",
+                title: "いつでも削除可能",
+                body: "Googleアカウントの「アプリへのアクセス」からいつでもStudyLensの権限を取り消せます。",
+              },
+            ].map((item, i) => (
+              <div key={i} style={{ background: "white", borderRadius: 16, padding: "28px 24px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>{item.icon}</div>
+                <p style={{ fontSize: 15, fontWeight: 700, color: "#1f2937", marginBottom: 8 }}>{item.title}</p>
+                <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.7 }}>{item.body}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* データフロー図 */}
+          <div style={{ background: "white", borderRadius: 20, padding: "32px 40px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+            <p style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: "#1f2937", marginBottom: 24 }}>データの流れ</p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
+              {[
+                { label: "Google Drive", sub: "ユーザーが選択したファイルのみ", color: "#e8f0fe", icon: "📁" },
+                { label: "→", sub: "読み取り専用", color: "transparent", icon: "" },
+                { label: "Claude AI", sub: "成績分析（送信後即破棄）", color: "#fef7e0", icon: "🤖" },
+                { label: "→", sub: "結果のみ返却", color: "transparent", icon: "" },
+                { label: "StudyLens", sub: "ブラウザに表示", color: "#e6f4ea", icon: "📊" },
+              ].map((step, i) => (
+                step.icon ? (
+                  <div key={i} style={{ textAlign: "center", background: step.color, borderRadius: 12, padding: "12px 16px", minWidth: 120 }}>
+                    <div style={{ fontSize: 24, marginBottom: 4 }}>{step.icon}</div>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "#1f2937" }}>{step.label}</p>
+                    <p style={{ fontSize: 11, color: "#6b7280" }}>{step.sub}</p>
+                  </div>
+                ) : (
+                  <div key={i} style={{ textAlign: "center" }}>
+                    <p style={{ fontSize: 20, color: "#9ca3af" }}>→</p>
+                    <p style={{ fontSize: 10, color: "#9ca3af" }}>{step.sub}</p>
+                  </div>
+                )
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── 料金 ── */}
       <section style={{ padding: "80px 24px", background: "white" }}>
         <div style={{ maxWidth: 600, margin: "0 auto", textAlign: "center" }}>
