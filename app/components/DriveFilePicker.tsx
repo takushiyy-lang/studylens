@@ -50,12 +50,15 @@ export function useGooglePicker(
       .setSelectFolderEnabled(false)
       .setParent('root')
 
+    const origin = window.location.protocol + '//' + window.location.host
+
     const picker = new window.google.picker.PickerBuilder()
       .addView(view)
       .enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED)
       .setTitle('テストファイルを選択（複数選択可）')
       .setOAuthToken(accessToken)
       .setDeveloperKey(apiKey)
+      .setOrigin(origin)
       .setCallback((data: { action: string; docs?: Array<{ id: string; name: string; mimeType: string }> }) => {
         if (data.action === window.google.picker.Action.PICKED && data.docs) {
           onSelectRef.current(data.docs.map(doc => ({
