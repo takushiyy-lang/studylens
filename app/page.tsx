@@ -92,6 +92,18 @@ function BarChartIcon() {
     </svg>
   );
 }
+function AppLogo({ size = 28 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="7" fill="white" fillOpacity="0.15" />
+      <rect x="4" y="20" width="5" height="8" rx="1.5" fill="white" />
+      <rect x="11" y="14" width="5" height="14" rx="1.5" fill="white" />
+      <rect x="18" y="9" width="5" height="19" rx="1.5" fill="white" />
+      <circle cx="25.5" cy="9.5" r="3.5" fill="none" stroke="#63c5f5" strokeWidth="1.8" />
+      <line x1="27.8" y1="11.8" x2="29.5" y2="13.5" stroke="#63c5f5" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
 function HomeIcon({ active }: { active: boolean }) {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill={active ? NAVY : "#9ca3af"}><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" /></svg>;
 }
@@ -465,6 +477,25 @@ export default function Home() {
               再取込み
             </button>
           </div>
+
+          {/* 今日のルーティン */}
+          {analysisResult?.routine?.items && analysisResult.routine.items.length > 0 && (
+            <div className="mx-4 mb-1 flex-shrink-0">
+              <div className="rounded-xl px-3 py-2.5" style={{ background: "#f0fdf4" }}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-bold" style={{ color: "#15803d" }}>📅 今日のおすすめルーティン</p>
+                  <button onClick={() => setActiveTab("routine")} className="text-xs" style={{ color: "#15803d" }}>詳細 →</button>
+                </div>
+                {analysisResult.routine.items.slice(0, 2).map((item, i) => (
+                  <div key={i} className="flex items-center gap-2 py-1" style={{ borderTop: i > 0 ? "1px solid #dcfce7" : "none" }}>
+                    <span className="text-xs text-gray-400 flex-shrink-0" style={{ width: 72 }}>{item.time}</span>
+                    <span className="text-xs font-bold flex-shrink-0" style={{ color: NAVY, width: 28 }}>{item.subject}</span>
+                    <span className="text-xs text-gray-600 flex-1 truncate">{item.menu}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Chat header */}
           <div className="flex items-center gap-3 px-4 py-2 flex-shrink-0 bg-white border-b border-gray-100">
@@ -1087,7 +1118,7 @@ export default function Home() {
       <div className="hidden sm:flex mx-auto overflow-hidden" style={{ maxWidth: 1024, height: "100dvh" }}>
         <aside className="w-56 flex-shrink-0 flex flex-col bg-white border-r border-gray-200 overflow-y-auto" style={{ height: "100dvh" }}>
           <div className="flex items-center gap-2 px-5 py-4 flex-shrink-0" style={{ backgroundColor: NAVY }}>
-            <BarChartIcon />
+            <AppLogo size={26} />
             <span className="text-white font-bold text-lg tracking-tight">StudyLens</span>
           </div>
           <nav className="flex-1 py-2">
@@ -1119,7 +1150,7 @@ export default function Home() {
       {/* Mobile */}
       <div className="flex flex-col sm:hidden mx-auto" style={{ maxWidth: 480, minHeight: "100dvh" }}>
         <header className="flex items-center justify-between px-4 py-3 flex-shrink-0" style={{ backgroundColor: NAVY }}>
-          <div className="flex items-center gap-2"><BarChartIcon /><span className="text-white font-bold text-lg tracking-tight">StudyLens</span></div>
+          <div className="flex items-center gap-2"><AppLogo size={26} /><span className="text-white font-bold text-lg tracking-tight">StudyLens</span></div>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white/20 text-white text-sm font-bold">{avatarChar}</div>
             <button onClick={() => signOut()} className="text-white/80 text-xs border border-white/30 rounded-full px-2.5 py-1 hover:bg-white/10 transition-colors ml-1">ログアウト</button>

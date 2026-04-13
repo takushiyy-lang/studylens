@@ -1,4 +1,5 @@
 import Link from "next/link";
+import FeedbackButton from "../components/FeedbackButton";
 
 const NAVY = "#0C447C";
 const LIGHT_NAVY = "#1a5c9e";
@@ -364,8 +365,8 @@ export default function LandingPage() {
               {
                 step: "02",
                 icon: "📁",
-                title: "Google DriveのURLを入力",
-                desc: "模試・テスト結果が入ったフォルダのURLを貼り付けるだけ。AIが自動でファイルを読み込みます。",
+                title: "テストファイルを選択",
+                desc: "模試・テスト結果のファイルをGoogle Driveから選ぶだけ。複数まとめて選択でき、データが多いほど分析精度が上がります。",
                 color: "#e6f4ea",
               },
               {
@@ -395,50 +396,52 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── データの安全性 ── */}
+      {/* ── データ精度のヒント ── */}
+      <section style={{ background: `linear-gradient(135deg, #e8f0fe, #f0fdf4)`, padding: "40px 24px" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <div style={{ background: "white", borderRadius: 20, padding: "28px 36px", display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap", boxShadow: "0 4px 20px rgba(12,68,124,0.08)" }}>
+            <div style={{ fontSize: 48, flexShrink: 0 }}>📈</div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 18, fontWeight: 800, color: "#1a1a2e", marginBottom: 6 }}>
+                データが多いほど、分析精度が上がります
+              </p>
+              <p style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.7 }}>
+                模試・テストのファイルは1枚より5枚、5枚より10枚と多く読み込むほど、AIがより正確に弱点のパターンを把握できます。
+                過去のテストをまとめてGoogle Driveに入れ、一気に読み込ませてみてください。
+              </p>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
+              {[["1〜3枚", "基本的な弱点把握", "#fef7e0", "#b45309"], ["5〜10枚", "パターン分析が可能", "#e8f0fe", NAVY], ["10枚以上", "高精度な個別最適化", "#e6f4ea", "#15803d"]].map(([count, label, bg, color]) => (
+                <div key={count} style={{ display: "flex", alignItems: "center", gap: 8, background: bg, borderRadius: 8, padding: "6px 14px" }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color }}>{count}</span>
+                  <span style={{ fontSize: 12, color: "#6b7280" }}>{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── データの安全性・個人情報 ── */}
       <section style={{ background: "#f8faff", padding: "80px 24px" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 48 }}>
             <div style={{ display: "inline-block", background: "#e8f0fe", borderRadius: 20, padding: "6px 16px", fontSize: 13, color: NAVY, fontWeight: 600, marginBottom: 16 }}>
-              データの安全性
+              セキュリティ・個人情報
             </div>
             <h2 style={{ fontSize: 32, fontWeight: 900, color: "#1a1a2e" }}>
-              お子さまのデータを<br />安全に取り扱います
+              お子さまのデータと<br />個人情報を安全に取り扱います
             </h2>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, marginBottom: 40 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, marginBottom: 32 }}>
             {[
-              {
-                icon: "🔒",
-                title: "読み取り専用アクセス",
-                body: "Google Driveへのアクセスは「読み取り専用」です。アプリがファイルを編集・削除・移動することは一切ありません。",
-              },
-              {
-                icon: "🚫",
-                title: "サーバーへの保存なし",
-                body: "テスト結果ファイルの内容はサーバーに保存されません。分析のためにAIに送信後、即座に破棄されます。",
-              },
-              {
-                icon: "🤖",
-                title: "AI分析のみに使用",
-                body: "読み込んだデータはAnthropicのClaude AIによる成績分析のみに使用します。第三者への提供や広告利用は行いません。",
-              },
-              {
-                icon: "🔐",
-                title: "Google認証で保護",
-                body: "ログインはGoogleの公式OAuth認証を使用。パスワードはStudyLensに渡らず、Googleが直接管理します。",
-              },
-              {
-                icon: "📁",
-                title: "選択ファイルのみ",
-                body: "アクセスできるのはユーザーが明示的に選択したファイルのみです。Drive全体を閲覧することはありません。",
-              },
-              {
-                icon: "🗑️",
-                title: "いつでも削除可能",
-                body: "Googleアカウントの「アプリへのアクセス」からいつでもStudyLensの権限を取り消せます。",
-              },
+              { icon: "🔒", title: "読み取り専用アクセス", body: "Google Driveへのアクセスは「読み取り専用」です。アプリがファイルを編集・削除・移動することは一切ありません。" },
+              { icon: "🚫", title: "サーバーへの保存なし", body: "テスト結果ファイルの内容はサーバーに保存されません。分析のためにAIに送信後、即座に破棄されます。" },
+              { icon: "🤖", title: "AI分析のみに使用", body: "読み込んだデータはAnthropicのClaude AIによる成績分析のみに使用します。第三者への提供や広告利用は行いません。" },
+              { icon: "🔐", title: "Google認証で保護", body: "ログインはGoogleの公式OAuth認証を使用。パスワードはStudyLensに渡らず、Googleが直接管理します。" },
+              { icon: "📁", title: "選択ファイルのみ", body: "アクセスできるのはユーザーが明示的に選択したファイルのみです。Drive全体を閲覧することはありません。" },
+              { icon: "🗑️", title: "いつでも権限取消可能", body: "Googleアカウントの「アプリへのアクセス」からいつでもStudyLensの権限を取り消せます。" },
             ].map((item, i) => (
               <div key={i} style={{ background: "white", borderRadius: 16, padding: "28px 24px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
                 <div style={{ fontSize: 32, marginBottom: 12 }}>{item.icon}</div>
@@ -446,6 +449,31 @@ export default function LandingPage() {
                 <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.7 }}>{item.body}</p>
               </div>
             ))}
+          </div>
+
+          {/* 個人情報の取り扱い */}
+          <div style={{ background: "white", borderRadius: 20, padding: "32px 36px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", marginBottom: 24 }}>
+            <p style={{ fontSize: 16, fontWeight: 800, color: "#1f2937", marginBottom: 20 }}>個人情報の取り扱いについて</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              {[
+                { label: "取得する情報", value: "Googleアカウントの氏名・メールアドレスのみ", ok: true },
+                { label: "取得しない情報", value: "住所・電話番号・クレジットカード等の個人情報は一切収集しません", ok: true },
+                { label: "テストファイル内の氏名等", value: "AI分析に使用後、保持・記録されません", ok: true },
+                { label: "第三者への提供", value: "ユーザーの同意なく個人情報を外部に提供することはありません", ok: true },
+              ].map((row, i) => (
+                <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <span style={{ color: "#16a34a", fontWeight: 700, flexShrink: 0, marginTop: 2 }}>✓</span>
+                  <div>
+                    <p style={{ fontSize: 12, color: "#9ca3af", marginBottom: 2 }}>{row.label}</p>
+                    <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.6 }}>{row.value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid #f3f4f6", display: "flex", gap: 16 }}>
+              <Link href="/privacy" style={{ fontSize: 13, color: NAVY, textDecoration: "none", fontWeight: 600 }}>プライバシーポリシー →</Link>
+              <Link href="/terms" style={{ fontSize: 13, color: NAVY, textDecoration: "none", fontWeight: 600 }}>利用規約 →</Link>
+            </div>
           </div>
 
           {/* データフロー図 */}
@@ -457,7 +485,7 @@ export default function LandingPage() {
                 { label: "→", sub: "読み取り専用", color: "transparent", icon: "" },
                 { label: "Claude AI", sub: "成績分析（送信後即破棄）", color: "#fef7e0", icon: "🤖" },
                 { label: "→", sub: "結果のみ返却", color: "transparent", icon: "" },
-                { label: "StudyLens", sub: "ブラウザに表示", color: "#e6f4ea", icon: "📊" },
+                { label: "StudyLens", sub: "ブラウザに表示・保存なし", color: "#e6f4ea", icon: "📊" },
               ].map((step, i) => (
                 step.icon ? (
                   <div key={i} style={{ textAlign: "center", background: step.color, borderRadius: 12, padding: "12px 16px", minWidth: 120 }}>
@@ -499,6 +527,39 @@ export default function LandingPage() {
             <Link href="/" style={{ display: "inline-block", background: "white", color: NAVY, fontWeight: 800, fontSize: 16, padding: "14px 40px", borderRadius: 32, textDecoration: "none" }}>
               今すぐ無料で始める
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── テスト版・フィードバック ── */}
+      <section style={{ background: "white", padding: "64px 24px" }}>
+        <div style={{ maxWidth: 720, margin: "0 auto" }}>
+          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 20, padding: "36px 40px", textAlign: "center" }}>
+            <div style={{ display: "inline-block", background: "#fef3c7", borderRadius: 20, padding: "6px 16px", fontSize: 13, color: "#92400e", fontWeight: 700, marginBottom: 16 }}>
+              🚧 テスト版公開中
+            </div>
+            <h3 style={{ fontSize: 24, fontWeight: 900, color: "#1a1a2e", marginBottom: 12 }}>
+              みなさまのフィードバックで<br />より良くなっていきます
+            </h3>
+            <p style={{ fontSize: 15, color: "#6b7280", lineHeight: 1.8, marginBottom: 28 }}>
+              StudyLensは現在テスト版として運営しています。<br />
+              実際にお使いいただいた感想・ご要望・不具合を開発チームに直接お届けください。<br />
+              いただいたフィードバックをもとに毎週アップデートしています。
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+              <div style={{ background: "white", borderRadius: 12, padding: "12px 20px", fontSize: 14, color: "#374151", border: "1px solid #e5e7eb" }}>
+                💡 機能のご要望
+              </div>
+              <div style={{ background: "white", borderRadius: 12, padding: "12px 20px", fontSize: 14, color: "#374151", border: "1px solid #e5e7eb" }}>
+                🐛 不具合の報告
+              </div>
+              <div style={{ background: "white", borderRadius: 12, padding: "12px 20px", fontSize: 14, color: "#374151", border: "1px solid #e5e7eb" }}>
+                😊 使ってみた感想
+              </div>
+            </div>
+            <p style={{ fontSize: 13, color: "#9ca3af", marginTop: 20 }}>
+              右下の「フィードバック」ボタンからいつでもお送りいただけます
+            </p>
           </div>
         </div>
       </section>
@@ -550,6 +611,7 @@ export default function LandingPage() {
         </div>
       </footer>
 
+      <FeedbackButton />
     </div>
   );
 }
