@@ -14,21 +14,12 @@ export const metadata: Metadata = {
     title: "StudyLens | AIで中学受験の最短合格ルートを",
     description: "模試・テスト結果をGoogle Driveに入れるだけ。AIが弱点を自動分析し、今日やるべきことを具体的に提示。無料で始められます。",
     siteName: "StudyLens",
-    images: [
-      {
-        url: `${SITE_URL}/og-image.png`,
-        width: 1200,
-        height: 630,
-        alt: "StudyLens - AI中学受験サポート",
-      },
-    ],
     locale: "ja_JP",
   },
   twitter: {
     card: "summary_large_image",
     title: "StudyLens | AIで中学受験の最短合格ルートを",
     description: "模試・テスト結果をGoogle Driveに入れるだけ。AIが弱点を自動分析し、今日やるべきことを具体的に提示。",
-    images: [`${SITE_URL}/og-image.png`],
   },
   alternates: {
     canonical: `${SITE_URL}/lp`,
