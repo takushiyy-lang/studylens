@@ -468,11 +468,28 @@ export default function Home() {
     if (analyzeStatus === "success") {
       return (
         <div className="flex flex-col flex-1 overflow-hidden min-h-0">
-          {/* Stats */}
+          {/* Stats 2×2 */}
           <div className="grid grid-cols-2 gap-3 px-4 pt-4 pb-2 flex-shrink-0">
             <StatCard label="4科偏差値"    value={avg ? String(avg.total) : "—"} sub={avg ? `算${avg.sansu}・国${avg.kokugo}` : "データなし"} color="#e8f0fe" textColor={NAVY} />
             <StatCard label="取込ファイル数" value={driveFiles.length > 0 ? String(driveFiles.length) : "—"} sub={driveFiles.length > 0 ? "取込済み" : "データなし"} color="#fef7e0" textColor="#b45309" />
             <StatCard label="最優先弱点"    value={topWeak?.unit ?? "—"} sub={topWeak ? `正答率 ${topWeak.avgCorrectRate}` : "データなし"} color="#fce8e6" textColor="#c5221f" />
+            {/* 今日のルーティン */}
+            <div className="rounded-2xl p-3 flex flex-col" style={{ backgroundColor: "#f0fdf4" }}>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-gray-500">今日のルーティン</p>
+                <button onClick={() => setActiveTab("routine")} className="text-xs font-semibold" style={{ color: "#15803d" }}>詳細 →</button>
+              </div>
+              {analysisResult?.routine?.items && analysisResult.routine.items.length > 0 ? (
+                analysisResult.routine.items.slice(0, 3).map((item, i) => (
+                  <div key={i} className="flex items-center gap-1.5 min-w-0" style={{ marginTop: i > 0 ? 5 : 0 }}>
+                    <span className="text-xs font-bold flex-shrink-0" style={{ color: NAVY }}>{item.subject}</span>
+                    <span className="text-xs text-gray-600 truncate">{item.menu}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-gray-400">データなし</p>
+              )}
+            </div>
           </div>
 
           {/* Quick nav + re-import */}
@@ -494,24 +511,6 @@ export default function Home() {
             </button>
           </div>
 
-          {/* 今日のルーティン */}
-          {analysisResult?.routine?.items && analysisResult.routine.items.length > 0 && (
-            <div className="mx-4 mb-1 flex-shrink-0">
-              <div className="rounded-xl px-3 py-2.5" style={{ background: "#f0fdf4" }}>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-bold" style={{ color: "#15803d" }}>📅 今日のおすすめルーティン</p>
-                  <button onClick={() => setActiveTab("routine")} className="text-xs" style={{ color: "#15803d" }}>詳細 →</button>
-                </div>
-                {analysisResult.routine.items.slice(0, 2).map((item, i) => (
-                  <div key={i} className="flex items-center gap-2 py-1" style={{ borderTop: i > 0 ? "1px solid #dcfce7" : "none" }}>
-                    <span className="text-xs text-gray-400 flex-shrink-0" style={{ width: 72 }}>{item.time}</span>
-                    <span className="text-xs font-bold flex-shrink-0" style={{ color: NAVY, width: 28 }}>{item.subject}</span>
-                    <span className="text-xs text-gray-600 flex-1 truncate">{item.menu}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Chat header */}
           <div className="flex items-center gap-3 px-4 py-2 flex-shrink-0 bg-white border-b border-gray-100">
