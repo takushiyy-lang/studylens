@@ -1203,7 +1203,7 @@ export default function Home() {
             </h3>
             <p style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.8, marginBottom: 24 }}>
               Google Driveのファイル選択は<br />モバイルブラウザに対応していません。<br /><br />
-              PCでファイルを読み込んだ後は、<br />スマートフォンでも分析結果を<br />確認できます。
+              PCブラウザからご利用ください。
             </p>
             <button
               onClick={() => setShowMobileModal(false)}
