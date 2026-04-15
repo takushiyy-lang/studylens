@@ -1,12 +1,62 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import FeedbackButton from "../components/FeedbackButton";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://studylens.vercel.app";
+
+export const metadata: Metadata = {
+  title: "StudyLens | AIで中学受験の最短合格ルートを",
+  description: "模試・テスト結果をGoogle Driveに入れるだけ。AIが弱点を自動分析し、今日やるべきことを具体的に提示。偏差値推移・学習ルーティン・AIチャットで中学受験を徹底サポート。無料で始められます。",
+  keywords: ["中学受験", "AI学習", "弱点分析", "偏差値", "学習サポート", "受験対策", "Google Drive", "模試分析", "学習ルーティン"],
+  openGraph: {
+    type: "website",
+    url: `${SITE_URL}/lp`,
+    title: "StudyLens | AIで中学受験の最短合格ルートを",
+    description: "模試・テスト結果をGoogle Driveに入れるだけ。AIが弱点を自動分析し、今日やるべきことを具体的に提示。無料で始められます。",
+    siteName: "StudyLens",
+    images: [
+      {
+        url: `${SITE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: "StudyLens - AI中学受験サポート",
+      },
+    ],
+    locale: "ja_JP",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "StudyLens | AIで中学受験の最短合格ルートを",
+    description: "模試・テスト結果をGoogle Driveに入れるだけ。AIが弱点を自動分析し、今日やるべきことを具体的に提示。",
+    images: [`${SITE_URL}/og-image.png`],
+  },
+  alternates: {
+    canonical: `${SITE_URL}/lp`,
+  },
+};
 
 const NAVY = "#0C447C";
 const LIGHT_NAVY = "#1a5c9e";
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "StudyLens",
+  applicationCategory: "EducationApplication",
+  operatingSystem: "Web",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "JPY" },
+  description: "模試・テスト結果をGoogle Driveに入れるだけ。AIが弱点を自動分析し、中学受験の最短合格ルートを提示するAI学習サポートアプリ。",
+  url: `${SITE_URL}/lp`,
+  publisher: { "@type": "Organization", name: "株式会社ACTASIA", email: "studylens@actasia.biz" },
+};
+
 export default function LandingPage() {
   return (
     <div style={{ fontFamily: "'Hiragino Sans', 'Noto Sans JP', sans-serif", color: "#1a1a2e", overflowX: "hidden" }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <style>{`
         @media (max-width: 767px) {
           .lp-nav-link { display: none !important; }
