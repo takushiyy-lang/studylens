@@ -205,6 +205,7 @@ export default function EnglishApp() {
   const [xpAnim, setXpAnim] = useState(0);
   const [showXpPop, setShowXpPop] = useState(false);
   const [hasSpeech, setHasSpeech] = useState(false);
+  const [activePhase, setActivePhase] = useState<string | undefined>(undefined);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
@@ -268,15 +269,23 @@ export default function EnglishApp() {
   }
 
   // ── Generate question ─────────────────────────────────
-  const generateQuestion = useCallback(async (stepIdx: number, qIdx: number) => {
+  const generateQuestion = useCallback(async (stepIdx: number, qIdx: number, phaseOverride?: string) => {
     if (!studyPlan) return;
     setIsLoading(true);
     setLoadingMsg("問題を生成中...");
     setError("");
     try {
       const step = studyPlan.steps[stepIdx];
-      const q = await callApi({ action: "generate_question", step, questionIndex: qIdx }) as Question;
+      const stepToUse = phaseOverride ? { ...step, phase: phaseOverride } : step;
+      const usedPhase = phaseOverride ?? step.phase;
+      const q = await callApi({
+        action: "generate_question",
+        step: stepToUse,
+        questionIndex: qIdx,
+        documentText: wordText,
+      }) as Question;
       setCurrentQuestion(q);
+      setActivePhase(usedPhase);
       setUserAnswer("");
       setFeedback(null);
       setScreen("question");
@@ -287,7 +296,7 @@ export default function EnglishApp() {
       setLoadingMsg("");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [studyPlan]);
+  }, [studyPlan, wordText]);
 
   // ── Submit answer ─────────────────────────────────────
   async function handleSubmit() {
@@ -348,10 +357,12 @@ export default function EnglishApp() {
         setCurrentStepIndex(nextStepIdx);
         saveStudy(studyPlan, nextStepIdx);
         setQuestionIndex(0);
+        setActivePhase(undefined);
         generateQuestion(nextStepIdx, 0);
       }
     } else {
       setQuestionIndex(nextQIdx);
+      setActivePhase(undefined);
       generateQuestion(currentStepIndex, nextQIdx);
     }
   }
@@ -359,7 +370,16 @@ export default function EnglishApp() {
   function handleStartStep(stepIdx: number) {
     setCurrentStepIndex(stepIdx);
     setQuestionIndex(0);
+    setActivePhase(undefined);
     generateQuestion(stepIdx, 0);
+  }
+
+  const PHASE_ORDER = ["memorize", "confirm", "apply", "master"] as const;
+
+  function handleEasierQuestion() {
+    const phaseIdx = PHASE_ORDER.indexOf((activePhase ?? "apply") as typeof PHASE_ORDER[number]);
+    const easierPhase = phaseIdx > 0 ? PHASE_ORDER[phaseIdx - 1] : PHASE_ORDER[0];
+    generateQuestion(currentStepIndex, questionIndex, easierPhase);
   }
 
   // ── Voice input ───────────────────────────────────────
@@ -768,6 +788,18 @@ export default function EnglishApp() {
               <div className="rounded-2xl px-4 py-3 flex items-center gap-2" style={{ backgroundColor: "#FEE2E2" }}>
                 <span className="text-sm" style={{ color: DANGER }}>⚠ {error}</span>
               </div>
+            )}
+
+            {/* Easier question button */}
+            {activePhase !== "memorize" && (
+              <button
+                onClick={handleEasierQuestion}
+                disabled={isLoading}
+                className="w-full py-3 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-opacity hover:opacity-80"
+                style={{ backgroundColor: "#F0F9FF", color: "#0369A1" }}
+              >
+                {isLoading ? <SpinnerIcon /> : "🌱 もっと優しい問題にする"}
+              </button>
             )}
 
             {/* Submit button */}
