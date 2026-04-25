@@ -11,9 +11,9 @@ type Step = {
   groupTheme?: string;
   phase?: "memorize" | "confirm" | "apply" | "master";
   title: string;
-  goal: string;
-  input_example: string;
-  tasks: string[];
+  goal?: string;
+  input_example?: string;
+  tasks?: string[];
 };
 
 type StudyPlan = {
@@ -232,7 +232,12 @@ export default function EnglishApp() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const data = await res.json();
+    let data: unknown;
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error("サーバーエラーが発生しました。時間をおいて再試行してください。");
+    }
     if (!res.ok) throw new Error((data as { error?: string }).error ?? "API error");
     return data;
   }
@@ -252,7 +257,12 @@ export default function EnglishApp() {
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetch("/api/english", { method: "POST", body: formData });
-      const data = await res.json() as { text?: string; error?: string };
+      let data: { text?: string; error?: string };
+      try {
+        data = await res.json() as { text?: string; error?: string };
+      } catch {
+        throw new Error("サーバーエラーが発生しました。ファイルが大きすぎるか、時間がかかりすぎた可能性があります。");
+      }
       if (!res.ok) throw new Error(data.error ?? "Parse failed");
       const text = data.text ?? "";
       if (!text.trim()) throw new Error("テキストを抽出できませんでした");
@@ -654,19 +664,19 @@ export default function EnglishApp() {
                           <PhaseBadge phase={step.phase} />
                         </div>
                         <p className="font-bold text-gray-800 text-sm">{step.title}</p>
-                        <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{step.goal}</p>
+                        {step.goal && <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{step.goal}</p>}
                       </div>
                     </div>
                   </div>
 
-                  {current && (
+                  {current && step.input_example && (
                     <div className="mt-3 rounded-xl px-3 py-2.5" style={{ backgroundColor: PRIMARY_LIGHT }}>
                       <p className="text-xs text-gray-500 mb-1">シナリオ</p>
                       <p className="text-sm text-gray-700">{step.input_example}</p>
                     </div>
                   )}
 
-                  {(current || done) && (
+                  {(current || done) && step.tasks && step.tasks.length > 0 && (
                     <div className="mt-3 flex flex-col gap-1.5">
                       {step.tasks.map((task, ti) => (
                         <div key={ti} className="flex items-start gap-2">
