@@ -299,12 +299,16 @@ export default function EnglishApp() {
       const step = studyPlan.steps[stepIdx];
       const stepToUse = phaseOverride ? { ...step, phase: phaseOverride } : step;
       const usedPhase = phaseOverride ?? step.phase;
+      const memorizeStep = step.groupId
+        ? studyPlan.steps.find(s => s.groupId === step.groupId && s.phase === "memorize")
+        : null;
       const q = await callApi({
         action: "generate_question",
         step: stepToUse,
         questionIndex: qIdx,
         documentText: wordText,
         previousQuestions: prevQuestions ?? [],
+        memorizeStepTitle: memorizeStep?.title,
       }) as Question;
       setCurrentQuestion(q);
       setActivePhase(usedPhase);
