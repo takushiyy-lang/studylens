@@ -30,17 +30,19 @@ export async function POST(req: NextRequest) {
       const formData = await req.formData();
       const file = formData.get("file") as File | null;
       if (!file) return Response.json({ error: "No file" }, { status: 400 });
-      const buffer = await file.arrayBuffer();
+      const arrayBuffer = await file.arrayBuffer();
+      const nodeBuffer = Buffer.from(arrayBuffer);
 
       let text = "";
 
       if (file.name.endsWith(".docx")) {
-        const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+        // mammoth requires a Node.js Buffer, not ArrayBuffer
+        const result = await mammoth.extractRawText({ buffer: nodeBuffer });
         text = result.value.slice(0, 8000);
 
       } else if (file.name.endsWith(".pdf")) {
         // Claude native PDF reading — no extra library needed
-        const base64 = Buffer.from(buffer).toString("base64");
+        const base64 = nodeBuffer.toString("base64");
         const res = await claude.messages.create({
           model: "claude-sonnet-4-20250514",
           max_tokens: 4096,
