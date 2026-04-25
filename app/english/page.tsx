@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 
 // ─── Types ────────────────────────────────────────────────
 type Screen = "upload" | "plan" | "question" | "feedback" | "complete";
 
 type Step = {
   id: string;
+  groupId?: string;
+  groupTheme?: string;
   phase?: "memorize" | "confirm" | "apply" | "master";
   title: string;
   goal: string;
@@ -609,18 +611,33 @@ export default function EnglishApp() {
             </div>
 
             {/* Step cards */}
-            {studyPlan.steps.map((step, i) => {
+            {studyPlan.steps.flatMap((step, i) => {
               const done = i < currentStepIndex;
               const current = i === currentStepIndex;
               const locked = i > currentStepIndex;
-              return (
+              const isNewGroup = !!(step.groupId && (i === 0 || step.groupId !== studyPlan.steps[i - 1].groupId));
+              const elements: React.ReactNode[] = [];
+
+              if (isNewGroup && step.groupTheme) {
+                elements.push(
+                  <div key={"group-" + step.id} className="flex items-center gap-2 mt-2 mb-1 px-1">
+                    <div className="h-px flex-1 bg-gray-200" />
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: PRIMARY_LIGHT, color: PRIMARY }}>
+                      {"📚 " + step.groupTheme}
+                    </span>
+                    <div className="h-px flex-1 bg-gray-200" />
+                  </div>
+                );
+              }
+
+              elements.push(
                 <div
                   key={step.id}
                   className="rounded-3xl p-5"
                   style={{
                     backgroundColor: done ? "#F0FDF4" : current ? "white" : "#F9FAFB",
                     boxShadow: current ? "0 4px 16px rgba(79,70,229,0.12)" : "0 1px 4px rgba(0,0,0,0.06)",
-                    border: current ? `2px solid ${PRIMARY}` : "2px solid transparent",
+                    border: current ? "2px solid " + PRIMARY : "2px solid transparent",
                     opacity: locked ? 0.6 : 1,
                   }}
                 >
@@ -642,7 +659,6 @@ export default function EnglishApp() {
                     </div>
                   </div>
 
-                  {/* Context */}
                   {current && (
                     <div className="mt-3 rounded-xl px-3 py-2.5" style={{ backgroundColor: PRIMARY_LIGHT }}>
                       <p className="text-xs text-gray-500 mb-1">シナリオ</p>
@@ -650,7 +666,6 @@ export default function EnglishApp() {
                     </div>
                   )}
 
-                  {/* Tasks */}
                   {(current || done) && (
                     <div className="mt-3 flex flex-col gap-1.5">
                       {step.tasks.map((task, ti) => (
@@ -668,7 +683,6 @@ export default function EnglishApp() {
                     </div>
                   )}
 
-                  {/* Start button */}
                   {current && !locked && (
                     <button
                       onClick={() => handleStartStep(i)}
@@ -688,6 +702,8 @@ export default function EnglishApp() {
                   )}
                 </div>
               );
+
+              return elements;
             })}
 
             {error && (
