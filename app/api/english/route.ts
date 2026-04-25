@@ -76,59 +76,74 @@ export async function POST(req: NextRequest) {
       const { text } = body as { text: string };
       const res = await claude.messages.create({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 2048,
-        system: `You are an expert English teacher who uses progressive learning design. Always structure plans from the easiest to hardest. Return JSON ONLY, no explanation.`,
+        max_tokens: 8192,
+        system: `You are an expert English teacher who designs comprehensive, progressive study plans. Your goal is full mastery of every item in the document — leaving nothing out. Return JSON ONLY, no explanation.`,
         messages: [
           {
             role: "user",
-            content: `Based on this document, create a 4-step progressive English study plan that goes from very easy to natural mastery.
+            content: `Analyze this document and build a COMPREHENSIVE study plan covering EVERY distinct expression, phrase, grammar pattern, or usage it contains.
 
 Document:
 ${text}
 
-IMPORTANT: Always use exactly these 4 phases in order, adapted to the document's topic:
+INSTRUCTIONS:
+1. Carefully read the entire document and list EVERY distinct learning item (e.g. if it covers "have", identify every usage: have + noun, have done, have something done, etc.). Do NOT skip any.
+2. Group related items into clusters of 2–4 items each.
+3. For EACH cluster, output exactly 4 steps in order: memorize → confirm → apply → master.
+4. There is NO limit on the number of groups — create as many as the document requires.
 
-Phase 1 — 覚えるステップ (Memorize): Pick 3-5 KEY phrases/expressions from the document. The goal is just to recognize and remember them. Very easy.
-Phase 2 — 確認するステップ (Confirm): Check if the user can recall those phrases from memory with simple prompts. Easy.
-Phase 3 — 使えるステップ (Apply): Use the phrases in real situations related to the document. Medium difficulty.
-Phase 4 — 定着するステップ (Master): Write naturally without relying on memorized phrases — express ideas freely. Harder.
-
-Return this exact JSON structure:
+Return this exact JSON (expand groups as needed — never truncate content):
 {
   "title": "Study Plan title based on document topic (Japanese OK)",
   "steps": [
     {
-      "id": "step_1",
+      "id": "step_1_1",
+      "groupId": "group_1",
+      "groupTheme": "このグループのテーマ（日本語OK、例：haveの基本用法）",
       "phase": "memorize",
-      "title": "覚えるステップ：[topic from document]",
-      "goal": "What the user will memorize (very specific, e.g. '3 key greeting phrases')",
-      "input_example": "The key phrases to learn, taken directly from the document",
-      "tasks": ["Phrase 1 to memorize", "Phrase 2 to memorize", "Phrase 3 to memorize"]
+      "title": "覚えるステップ：[specific content]",
+      "goal": "Exactly which items from the document the user will memorize",
+      "input_example": "The exact phrases/expressions taken verbatim from the document",
+      "tasks": ["Exact phrase 1 from document", "Exact phrase 2", "Exact phrase 3"]
     },
     {
-      "id": "step_2",
+      "id": "step_1_2",
+      "groupId": "group_1",
+      "groupTheme": "このグループのテーマ",
       "phase": "confirm",
-      "title": "確認するステップ：[topic]",
-      "goal": "Recall the memorized phrases from memory",
-      "input_example": "A simple recall situation",
+      "title": "確認するステップ：[specific content]",
+      "goal": "Recall the memorized phrases without seeing them",
+      "input_example": "A recall prompt that tests memory",
       "tasks": ["Recall task 1", "Recall task 2"]
     },
     {
-      "id": "step_3",
+      "id": "step_1_3",
+      "groupId": "group_1",
+      "groupTheme": "このグループのテーマ",
       "phase": "apply",
-      "title": "使えるステップ：[topic]",
-      "goal": "Use the phrases in real context from the document",
-      "input_example": "A realistic situation where these phrases are needed",
+      "title": "使えるステップ：[specific content]",
+      "goal": "Use the phrases naturally in realistic situations",
+      "input_example": "A realistic situation requiring these specific phrases",
       "tasks": ["Application task 1", "Application task 2", "Application task 3"]
     },
     {
-      "id": "step_4",
+      "id": "step_1_4",
+      "groupId": "group_1",
+      "groupTheme": "このグループのテーマ",
       "phase": "master",
-      "title": "定着するステップ：[topic]",
-      "goal": "Express ideas naturally and freely on this topic",
-      "input_example": "An open-ended situation requiring natural expression",
-      "tasks": ["Free expression task 1", "Variation task 2", "Creative task 3"]
+      "title": "定着するステップ：[specific content]",
+      "goal": "Express ideas freely on this topic without relying on memorized phrases",
+      "input_example": "An open-ended situation for free expression",
+      "tasks": ["Free expression task", "Variation task", "Creative challenge"]
+    },
+    {
+      "id": "step_2_1",
+      "groupId": "group_2",
+      "groupTheme": "次のグループのテーマ",
+      "phase": "memorize",
+      ...
     }
+    ... (continue for ALL groups until every item in the document is covered)
   ]
 }`,
           },
