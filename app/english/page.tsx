@@ -7,6 +7,7 @@ type Screen = "upload" | "plan" | "question" | "feedback" | "complete";
 
 type Step = {
   id: string;
+  phase?: "memorize" | "confirm" | "apply" | "master";
   title: string;
   goal: string;
   input_example: string;
@@ -155,6 +156,21 @@ function SpinnerIcon() {
 
 function CheckIcon() {
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>;
+}
+
+function PhaseBadge({ phase }: { phase?: string }) {
+  const map: Record<string, { bg: string; text: string; label: string }> = {
+    memorize: { bg: "#EEF2FF", text: PRIMARY,  label: "覚える" },
+    confirm:  { bg: "#F0F9FF", text: "#0369A1", label: "確認する" },
+    apply:    { bg: "#FEF3C7", text: WARNING,   label: "使う" },
+    master:   { bg: "#FEE2E2", text: DANGER,    label: "定着する" },
+  };
+  const s = map[phase ?? "memorize"];
+  return (
+    <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: s.bg, color: s.text }}>
+      {s.label}
+    </span>
+  );
 }
 
 function DifficultyBadge({ d }: { d: string }) {
@@ -597,6 +613,9 @@ export default function EnglishApp() {
                         {done ? "✓" : i + 1}
                       </div>
                       <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <PhaseBadge phase={step.phase} />
+                        </div>
                         <p className="font-bold text-gray-800 text-sm">{step.title}</p>
                         <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{step.goal}</p>
                       </div>

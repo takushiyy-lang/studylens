@@ -77,25 +77,57 @@ export async function POST(req: NextRequest) {
       const res = await claude.messages.create({
         model: "claude-sonnet-4-20250514",
         max_tokens: 2048,
-        system: `You are an expert English teacher. Analyze text from a user's document and create a personalized English study plan focused on practical composition skills. Return JSON ONLY, no explanation.`,
+        system: `You are an expert English teacher who uses progressive learning design. Always structure plans from the easiest to hardest. Return JSON ONLY, no explanation.`,
         messages: [
           {
             role: "user",
-            content: `Based on this document text, create a study plan with 4-5 steps to help the user write natural English about these topics.
+            content: `Based on this document, create a 4-step progressive English study plan that goes from very easy to natural mastery.
 
 Document:
 ${text}
 
+IMPORTANT: Always use exactly these 4 phases in order, adapted to the document's topic:
+
+Phase 1 — 覚えるステップ (Memorize): Pick 3-5 KEY phrases/expressions from the document. The goal is just to recognize and remember them. Very easy.
+Phase 2 — 確認するステップ (Confirm): Check if the user can recall those phrases from memory with simple prompts. Easy.
+Phase 3 — 使えるステップ (Apply): Use the phrases in real situations related to the document. Medium difficulty.
+Phase 4 — 定着するステップ (Master): Write naturally without relying on memorized phrases — express ideas freely. Harder.
+
 Return this exact JSON structure:
 {
-  "title": "Study Plan title based on document content",
+  "title": "Study Plan title based on document topic (Japanese OK)",
   "steps": [
     {
       "id": "step_1",
-      "title": "Step title",
-      "goal": "What the user will be able to do",
-      "input_example": "A real situation from the document where this skill is needed",
-      "tasks": ["Task 1", "Task 2", "Task 3"]
+      "phase": "memorize",
+      "title": "覚えるステップ：[topic from document]",
+      "goal": "What the user will memorize (very specific, e.g. '3 key greeting phrases')",
+      "input_example": "The key phrases to learn, taken directly from the document",
+      "tasks": ["Phrase 1 to memorize", "Phrase 2 to memorize", "Phrase 3 to memorize"]
+    },
+    {
+      "id": "step_2",
+      "phase": "confirm",
+      "title": "確認するステップ：[topic]",
+      "goal": "Recall the memorized phrases from memory",
+      "input_example": "A simple recall situation",
+      "tasks": ["Recall task 1", "Recall task 2"]
+    },
+    {
+      "id": "step_3",
+      "phase": "apply",
+      "title": "使えるステップ：[topic]",
+      "goal": "Use the phrases in real context from the document",
+      "input_example": "A realistic situation where these phrases are needed",
+      "tasks": ["Application task 1", "Application task 2", "Application task 3"]
+    },
+    {
+      "id": "step_4",
+      "phase": "master",
+      "title": "定着するステップ：[topic]",
+      "goal": "Express ideas naturally and freely on this topic",
+      "input_example": "An open-ended situation requiring natural expression",
+      "tasks": ["Free expression task 1", "Variation task 2", "Creative task 3"]
     }
   ]
 }`,
@@ -111,13 +143,22 @@ Return this exact JSON structure:
     // Generate a composition question for a step
     if (action === "generate_question") {
       const { step, questionIndex } = body as {
-        step: { id: string; title: string; goal: string; input_example: string; tasks: string[] };
+        step: { id: string; phase?: string; title: string; goal: string; input_example: string; tasks: string[] };
         questionIndex: number;
       };
+
+      const phase = step.phase ?? "apply";
+      const phaseInstructions: Record<string, string> = {
+        memorize: `This is the MEMORIZE phase. Questions must be extremely easy — just ask the user to type out one of the given phrases exactly as shown. Provide the phrase in the hint field. difficulty: "easy".`,
+        confirm:  `This is the CONFIRM phase. Questions ask the user to recall a phrase from memory without showing it. Give a strong Japanese context clue. difficulty: "easy".`,
+        apply:    `This is the APPLY phase. Questions ask the user to write a natural English sentence using the learned phrases in a realistic situation. difficulty: "medium".`,
+        master:   `This is the MASTER phase. Questions ask the user to express an idea freely and naturally without relying on memorized phrases. No hints. difficulty: "hard".`,
+      };
+
       const res = await claude.messages.create({
         model: "claude-sonnet-4-20250514",
         max_tokens: 512,
-        system: `You are an English teacher creating practical writing exercises. Generate varied questions based on the step. Question ${questionIndex + 1} should be ${questionIndex === 0 ? "basic" : questionIndex === 1 ? "intermediate" : "advanced"}. Return JSON ONLY.`,
+        system: `You are an English teacher creating progressive writing exercises. ${phaseInstructions[phase] ?? phaseInstructions.apply} Return JSON ONLY.`,
         messages: [
           {
             role: "user",
@@ -125,16 +166,16 @@ Return this exact JSON structure:
 
 Step: ${step.title}
 Goal: ${step.goal}
-Context: ${step.input_example}
+Key content: ${step.input_example}
 Tasks: ${step.tasks.join(", ")}
 
 Return this exact JSON:
 {
   "id": "q_${step.id}_${questionIndex}",
-  "japanese": "日本語で状況や課題を説明（50文字以内）",
-  "hint": "Optional English hint phrase (or empty string)",
-  "context": "Brief English context description",
-  "difficulty": "${questionIndex === 0 ? "easy" : questionIndex === 1 ? "medium" : "hard"}"
+  "japanese": "日本語で状況や課題を説明（わかりやすく、50文字以内）",
+  "hint": "${phase === "memorize" ? "Show the exact phrase to type here" : phase === "confirm" ? "Optional very short hint or empty string" : ""}",
+  "context": "Brief English context (1 sentence)",
+  "difficulty": "${phase === "memorize" || phase === "confirm" ? "easy" : phase === "apply" ? "medium" : "hard"}"
 }`,
           },
         ],
