@@ -142,9 +142,10 @@ Return this exact JSON structure:
 
     // Generate a composition question for a step
     if (action === "generate_question") {
-      const { step, questionIndex } = body as {
+      const { step, questionIndex, documentText } = body as {
         step: { id: string; phase?: string; title: string; goal: string; input_example: string; tasks: string[] };
         questionIndex: number;
+        documentText?: string;
       };
 
       const phase = step.phase ?? "apply";
@@ -154,6 +155,10 @@ Return this exact JSON structure:
         apply:    `This is the APPLY phase. Questions ask the user to write a natural English sentence using the learned phrases in a realistic situation. difficulty: "medium".`,
         master:   `This is the MASTER phase. Questions ask the user to express an idea freely and naturally without relying on memorized phrases. No hints. difficulty: "hard".`,
       };
+
+      const docSection = documentText
+        ? `\n\nSource document (STRICTLY use only vocabulary, expressions, and grammar patterns found in this document — do NOT introduce unrelated expressions):\n${documentText.slice(0, 3000)}`
+        : "";
 
       const res = await claude.messages.create({
         model: "claude-sonnet-4-20250514",
@@ -167,7 +172,7 @@ Return this exact JSON structure:
 Step: ${step.title}
 Goal: ${step.goal}
 Key content: ${step.input_example}
-Tasks: ${step.tasks.join(", ")}
+Tasks: ${step.tasks.join(", ")}${docSection}
 
 Return this exact JSON:
 {
