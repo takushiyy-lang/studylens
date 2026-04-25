@@ -72,78 +72,39 @@ export async function POST(req: NextRequest) {
     const { action } = body as { action: string };
 
     // Generate study plan from extracted text
+    // Returns a COMPACT skeleton (no detailed content) to stay fast and within token limits.
+    // Questions are generated lazily per-step using the document text.
     if (action === "generate_plan") {
       const { text } = body as { text: string };
       const res = await claude.messages.create({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 8192,
-        system: `You are an expert English teacher who designs comprehensive, progressive study plans. Your goal is full mastery of every item in the document — leaving nothing out. Return JSON ONLY, no explanation.`,
+        max_tokens: 4096,
+        system: `You are an expert English teacher. Identify every distinct learning item in the document and organize them into a progressive study plan. Return JSON ONLY, no explanation.`,
         messages: [
           {
             role: "user",
-            content: `Analyze this document and build a COMPREHENSIVE study plan covering EVERY distinct expression, phrase, grammar pattern, or usage it contains.
+            content: `Analyze this document and create a COMPREHENSIVE study plan that covers EVERY distinct expression, phrase, grammar pattern, or usage it contains.
 
 Document:
 ${text}
 
 INSTRUCTIONS:
-1. Carefully read the entire document and list EVERY distinct learning item (e.g. if it covers "have", identify every usage: have + noun, have done, have something done, etc.). Do NOT skip any.
+1. List EVERY distinct learning item in the document. Do NOT skip any.
 2. Group related items into clusters of 2–4 items each.
-3. For EACH cluster, output exactly 4 steps in order: memorize → confirm → apply → master.
-4. There is NO limit on the number of groups — create as many as the document requires.
+3. For EACH cluster, output exactly 4 step entries in order: memorize → confirm → apply → master.
+4. No limit on groups — create as many as needed.
+5. Keep each step entry SHORT (title only, no detailed content). Questions will be generated later.
 
-Return this exact JSON (expand groups as needed — never truncate content):
+Return ONLY this compact JSON (repeat the 4-step pattern for every group):
 {
-  "title": "Study Plan title based on document topic (Japanese OK)",
+  "title": "プランのタイトル（日本語OK）",
   "steps": [
-    {
-      "id": "step_1_1",
-      "groupId": "group_1",
-      "groupTheme": "このグループのテーマ（日本語OK、例：haveの基本用法）",
-      "phase": "memorize",
-      "title": "覚えるステップ：[specific content]",
-      "goal": "Exactly which items from the document the user will memorize",
-      "input_example": "The exact phrases/expressions taken verbatim from the document",
-      "tasks": ["Exact phrase 1 from document", "Exact phrase 2", "Exact phrase 3"]
-    },
-    {
-      "id": "step_1_2",
-      "groupId": "group_1",
-      "groupTheme": "このグループのテーマ",
-      "phase": "confirm",
-      "title": "確認するステップ：[specific content]",
-      "goal": "Recall the memorized phrases without seeing them",
-      "input_example": "A recall prompt that tests memory",
-      "tasks": ["Recall task 1", "Recall task 2"]
-    },
-    {
-      "id": "step_1_3",
-      "groupId": "group_1",
-      "groupTheme": "このグループのテーマ",
-      "phase": "apply",
-      "title": "使えるステップ：[specific content]",
-      "goal": "Use the phrases naturally in realistic situations",
-      "input_example": "A realistic situation requiring these specific phrases",
-      "tasks": ["Application task 1", "Application task 2", "Application task 3"]
-    },
-    {
-      "id": "step_1_4",
-      "groupId": "group_1",
-      "groupTheme": "このグループのテーマ",
-      "phase": "master",
-      "title": "定着するステップ：[specific content]",
-      "goal": "Express ideas freely on this topic without relying on memorized phrases",
-      "input_example": "An open-ended situation for free expression",
-      "tasks": ["Free expression task", "Variation task", "Creative challenge"]
-    },
-    {
-      "id": "step_2_1",
-      "groupId": "group_2",
-      "groupTheme": "次のグループのテーマ",
-      "phase": "memorize",
-      ...
-    }
-    ... (continue for ALL groups until every item in the document is covered)
+    { "id": "s1_1", "groupId": "g1", "groupTheme": "グループのテーマ（例：haveの所有表現）", "phase": "memorize", "title": "覚えるステップ：[内容]" },
+    { "id": "s1_2", "groupId": "g1", "groupTheme": "グループのテーマ", "phase": "confirm",  "title": "確認するステップ：[内容]" },
+    { "id": "s1_3", "groupId": "g1", "groupTheme": "グループのテーマ", "phase": "apply",    "title": "使えるステップ：[内容]" },
+    { "id": "s1_4", "groupId": "g1", "groupTheme": "グループのテーマ", "phase": "master",   "title": "定着するステップ：[内容]" },
+    { "id": "s2_1", "groupId": "g2", "groupTheme": "次のグループ",     "phase": "memorize", "title": "覚えるステップ：[内容]" },
+    ... (all groups)
   ]
 }`,
           },
@@ -151,29 +112,35 @@ Return this exact JSON (expand groups as needed — never truncate content):
       });
       const raw = res.content[0].type === "text" ? res.content[0].text : "";
       const parsed = extractJson(raw);
-      if (!parsed) return Response.json({ error: "Parse failed" }, { status: 500 });
+      if (!parsed) return Response.json({ error: "プランの生成に失敗しました。もう一度試してください。" }, { status: 500 });
       return Response.json(parsed);
     }
 
     // Generate a composition question for a step
     if (action === "generate_question") {
       const { step, questionIndex, documentText } = body as {
-        step: { id: string; phase?: string; title: string; goal: string; input_example: string; tasks: string[] };
+        step: { id: string; phase?: string; groupTheme?: string; title: string; goal?: string; input_example?: string; tasks?: string[] };
         questionIndex: number;
         documentText?: string;
       };
 
       const phase = step.phase ?? "apply";
       const phaseInstructions: Record<string, string> = {
-        memorize: `This is the MEMORIZE phase. Questions must be extremely easy — just ask the user to type out one of the given phrases exactly as shown. Provide the phrase in the hint field. difficulty: "easy".`,
-        confirm:  `This is the CONFIRM phase. Questions ask the user to recall a phrase from memory without showing it. Give a strong Japanese context clue. difficulty: "easy".`,
-        apply:    `This is the APPLY phase. Questions ask the user to write a natural English sentence using the learned phrases in a realistic situation. difficulty: "medium".`,
-        master:   `This is the MASTER phase. Questions ask the user to express an idea freely and naturally without relying on memorized phrases. No hints. difficulty: "hard".`,
+        memorize: `MEMORIZE phase: extremely easy — ask the user to type out one specific phrase exactly as it appears in the document. Put that exact phrase in the hint field. difficulty: "easy".`,
+        confirm:  `CONFIRM phase: ask the user to recall a phrase from memory without showing it. Give a strong Japanese context clue. difficulty: "easy".`,
+        apply:    `APPLY phase: ask the user to write a natural English sentence using expressions from the document in a realistic situation. difficulty: "medium".`,
+        master:   `MASTER phase: ask the user to express an idea freely and naturally — no hints, no memorized phrases. difficulty: "hard".`,
       };
 
       const docSection = documentText
-        ? `\n\nSource document (STRICTLY use only vocabulary, expressions, and grammar patterns found in this document — do NOT introduce unrelated expressions):\n${documentText.slice(0, 3000)}`
+        ? `\n\nSource document — base ALL questions STRICTLY on expressions found here only:\n${documentText.slice(0, 4000)}`
         : "";
+
+      const extraContext = [
+        step.goal && `Goal: ${step.goal}`,
+        step.input_example && `Key content: ${step.input_example}`,
+        step.tasks?.length && `Tasks: ${step.tasks.join(", ")}`,
+      ].filter(Boolean).join("\n");
 
       const res = await claude.messages.create({
         model: "claude-sonnet-4-20250514",
@@ -185,15 +152,14 @@ Return this exact JSON (expand groups as needed — never truncate content):
             content: `Create English composition question #${questionIndex + 1} for this step.
 
 Step: ${step.title}
-Goal: ${step.goal}
-Key content: ${step.input_example}
-Tasks: ${step.tasks.join(", ")}${docSection}
+Group theme: ${step.groupTheme ?? ""}
+${extraContext}${docSection}
 
 Return this exact JSON:
 {
   "id": "q_${step.id}_${questionIndex}",
   "japanese": "日本語で状況や課題を説明（わかりやすく、50文字以内）",
-  "hint": "${phase === "memorize" ? "Show the exact phrase to type here" : phase === "confirm" ? "Optional very short hint or empty string" : ""}",
+  "hint": "${phase === "memorize" ? "Show the exact phrase from the document to type here" : phase === "confirm" ? "Optional very short hint or empty string" : ""}",
   "context": "Brief English context (1 sentence)",
   "difficulty": "${phase === "memorize" || phase === "confirm" ? "easy" : phase === "apply" ? "medium" : "hard"}"
 }`,
@@ -211,7 +177,7 @@ Return this exact JSON:
       const { question, answer, step } = body as {
         question: { japanese: string; context: string; difficulty: string };
         answer: string;
-        step: { title: string; goal: string };
+        step: { title: string; groupTheme?: string; goal?: string };
       };
       const res = await claude.messages.create({
         model: "claude-sonnet-4-20250514",
@@ -225,7 +191,7 @@ Return this exact JSON:
 Task (Japanese): ${question.japanese}
 Context: ${question.context}
 Difficulty: ${question.difficulty}
-Learning goal: ${step.goal}
+Learning goal: ${step.goal ?? step.groupTheme ?? step.title}
 
 Student answer: "${answer}"
 
