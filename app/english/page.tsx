@@ -80,6 +80,27 @@ function saveGame(g: GameState) {
   } catch {}
 }
 
+// ── Study progress helpers ────────────────────────────────
+type StudyProgress = { plan: StudyPlan; stepIndex: number };
+
+function loadStudy(): StudyProgress | null {
+  try {
+    const raw = localStorage.getItem("el_study");
+    if (raw) return JSON.parse(raw) as StudyProgress;
+  } catch {}
+  return null;
+}
+
+function saveStudy(plan: StudyPlan, stepIndex: number) {
+  try {
+    localStorage.setItem("el_study", JSON.stringify({ plan, stepIndex }));
+  } catch {}
+}
+
+function clearStudy() {
+  try { localStorage.removeItem("el_study"); } catch {}
+}
+
 function calcLevel(xp: number) {
   return Math.floor(xp / XP_PER_LEVEL) + 1;
 }
@@ -173,10 +194,16 @@ export default function EnglishApp() {
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load game state from localStorage on mount
+  // Load game + study progress from localStorage on mount
   useEffect(() => {
     setGame(loadGame());
     setHasSpeech(typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window));
+    const saved = loadStudy();
+    if (saved) {
+      setStudyPlan(saved.plan);
+      setCurrentStepIndex(saved.stepIndex);
+      setScreen("plan");
+    }
   }, []);
 
   // ── API helpers ───────────────────────────────────────
@@ -214,6 +241,7 @@ export default function EnglishApp() {
       setLoadingMsg("学習プランを生成中...");
       const plan = await callApi({ action: "generate_plan", text }) as StudyPlan;
       setStudyPlan(plan);
+      saveStudy(plan, 0);
       setScreen("plan");
     } catch (e) {
       setError(e instanceof Error ? e.message : "エラーが発生しました");
@@ -298,9 +326,11 @@ export default function EnglishApp() {
       // Step complete — move to next step
       const nextStepIdx = currentStepIndex + 1;
       if (nextStepIdx >= studyPlan.steps.length) {
+        clearStudy();
         setScreen("complete");
       } else {
         setCurrentStepIndex(nextStepIdx);
+        saveStudy(studyPlan, nextStepIdx);
         setQuestionIndex(0);
         generateQuestion(nextStepIdx, 0);
       }
@@ -512,9 +542,17 @@ export default function EnglishApp() {
         {/* ── Plan Screen ───────────────────────────────── */}
         {screen === "plan" && studyPlan && (
           <div className="flex flex-col gap-4">
-            <div>
-              <h2 className="text-lg font-bold text-gray-800">{studyPlan.title}</h2>
-              <p className="text-sm text-gray-500 mt-1">学習ステップを選んで始めましょう</p>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h2 className="text-lg font-bold text-gray-800">{studyPlan.title}</h2>
+                <p className="text-sm text-gray-500 mt-1">学習ステップを選んで始めましょう</p>
+              </div>
+              <button
+                onClick={() => { clearStudy(); setStudyPlan(null); setCurrentStepIndex(0); setQuestionIndex(0); setScreen("upload"); }}
+                className="text-xs text-gray-400 underline flex-shrink-0 mt-1"
+              >
+                最初からやり直す
+              </button>
             </div>
 
             {/* Step progress */}
@@ -856,7 +894,7 @@ export default function EnglishApp() {
               📚 もう一度学習する
             </button>
             <button
-              onClick={() => { setScreen("upload"); setStudyPlan(null); setWordText(""); }}
+              onClick={() => { clearStudy(); setScreen("upload"); setStudyPlan(null); setWordText(""); }}
               className="w-full py-3 rounded-2xl font-semibold text-sm"
               style={{ backgroundColor: PRIMARY_LIGHT, color: PRIMARY }}
             >
