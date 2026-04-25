@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
 // ─── Types ────────────────────────────────────────────────
-type Screen = "upload" | "plan" | "question" | "feedback" | "complete";
+type Screen = "upload" | "plan" | "question" | "feedback" | "complete" | "test" | "test_result";
 
 type Step = {
   id: string;
@@ -84,7 +84,7 @@ function saveGame(g: GameState) {
 }
 
 // ── Study progress helpers ────────────────────────────────
-type StudyProgress = { plan: StudyPlan; stepIndex: number };
+type StudyProgress = { plan: StudyPlan; completedStepIds: string[]; activeStepIndex: number };
 
 function loadStudy(): StudyProgress | null {
   try {
@@ -94,9 +94,9 @@ function loadStudy(): StudyProgress | null {
   return null;
 }
 
-function saveStudy(plan: StudyPlan, stepIndex: number) {
+function saveStudy(plan: StudyPlan, completedStepIds: string[], activeStepIndex: number) {
   try {
-    localStorage.setItem("el_study", JSON.stringify({ plan, stepIndex }));
+    localStorage.setItem("el_study", JSON.stringify({ plan, completedStepIds, activeStepIndex }));
   } catch {}
 }
 
@@ -194,7 +194,8 @@ export default function EnglishApp() {
   const [screen, setScreen] = useState<Screen>("upload");
   const [wordText, setWordText] = useState("");
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [activeStepIndex, setActiveStepIndex] = useState(0);
+  const [completedStepIds, setCompletedStepIds] = useState<string[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [userAnswer, setUserAnswer] = useState("");
@@ -208,6 +209,10 @@ export default function EnglishApp() {
   const [showXpPop, setShowXpPop] = useState(false);
   const [hasSpeech, setHasSpeech] = useState(false);
   const [activePhase, setActivePhase] = useState<string | undefined>(undefined);
+  // Test state
+  const [testQuestions, setTestQuestions] = useState<Question[]>([]);
+  const [testIdx, setTestIdx] = useState(0);
+  const [testResults, setTestResults] = useState<Array<{ question: Question; answer: string; feedback: Feedback }>>([]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
@@ -220,7 +225,8 @@ export default function EnglishApp() {
     const saved = loadStudy();
     if (saved) {
       setStudyPlan(saved.plan);
-      setCurrentStepIndex(saved.stepIndex);
+      setCompletedStepIds(saved.completedStepIds ?? []);
+      setActiveStepIndex(saved.activeStepIndex ?? 0);
       setScreen("plan");
     }
   }, []);
@@ -270,7 +276,9 @@ export default function EnglishApp() {
       setLoadingMsg("学習プランを生成中...");
       const plan = await callApi({ action: "generate_plan", text }) as StudyPlan;
       setStudyPlan(plan);
-      saveStudy(plan, 0);
+      setCompletedStepIds([]);
+      setActiveStepIndex(0);
+      saveStudy(plan, [], 0);
       setScreen("plan");
     } catch (e) {
       setError(e instanceof Error ? e.message : "エラーが発生しました");
@@ -317,7 +325,7 @@ export default function EnglishApp() {
     setLoadingMsg("採点中...");
     setError("");
     try {
-      const step = studyPlan.steps[currentStepIndex];
+      const step = studyPlan.steps[activeStepIndex];
       const fb = await callApi({
         action: "grade_answer",
         question: currentQuestion,
@@ -360,27 +368,30 @@ export default function EnglishApp() {
     if (!studyPlan) return;
     const nextQIdx = questionIndex + 1;
     if (nextQIdx >= QUESTIONS_PER_STEP) {
-      // Step complete — move to next step
-      const nextStepIdx = currentStepIndex + 1;
-      if (nextStepIdx >= studyPlan.steps.length) {
+      // Step complete — record completion and return to plan
+      const completedStep = studyPlan.steps[activeStepIndex];
+      const newCompleted = completedStepIds.includes(completedStep.id)
+        ? completedStepIds
+        : [...completedStepIds, completedStep.id];
+      setCompletedStepIds(newCompleted);
+      setQuestionIndex(0);
+      setActivePhase(undefined);
+      if (newCompleted.length >= studyPlan.steps.length) {
         clearStudy();
         setScreen("complete");
       } else {
-        setCurrentStepIndex(nextStepIdx);
-        saveStudy(studyPlan, nextStepIdx);
-        setQuestionIndex(0);
-        setActivePhase(undefined);
-        generateQuestion(nextStepIdx, 0);
+        saveStudy(studyPlan, newCompleted, activeStepIndex);
+        setScreen("plan");
       }
     } else {
       setQuestionIndex(nextQIdx);
       setActivePhase(undefined);
-      generateQuestion(currentStepIndex, nextQIdx);
+      generateQuestion(activeStepIndex, nextQIdx);
     }
   }
 
   function handleStartStep(stepIdx: number) {
-    setCurrentStepIndex(stepIdx);
+    setActiveStepIndex(stepIdx);
     setQuestionIndex(0);
     setActivePhase(undefined);
     generateQuestion(stepIdx, 0);
@@ -391,7 +402,76 @@ export default function EnglishApp() {
   function handleEasierQuestion() {
     const phaseIdx = PHASE_ORDER.indexOf((activePhase ?? "apply") as typeof PHASE_ORDER[number]);
     const easierPhase = phaseIdx > 0 ? PHASE_ORDER[phaseIdx - 1] : PHASE_ORDER[0];
-    generateQuestion(currentStepIndex, questionIndex, easierPhase);
+    generateQuestion(activeStepIndex, questionIndex, easierPhase);
+  }
+
+  // ── Test flow ─────────────────────────────────────────
+  async function handleStartTest() {
+    if (!wordText) return;
+    setIsLoading(true);
+    setLoadingMsg("テスト問題を生成中...");
+    setError("");
+    try {
+      const result = await callApi({ action: "generate_test", documentText: wordText, count: 5 }) as { questions: Question[] };
+      const questions = result.questions;
+      setTestQuestions(questions);
+      setTestIdx(0);
+      setTestResults([]);
+      setCurrentQuestion(questions[0]);
+      setUserAnswer("");
+      setFeedback(null);
+      setScreen("test");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "エラーが発生しました");
+    } finally {
+      setIsLoading(false);
+      setLoadingMsg("");
+    }
+  }
+
+  async function handleTestSubmit() {
+    if (!currentQuestion || !userAnswer.trim()) return;
+    setIsLoading(true);
+    setLoadingMsg("採点中...");
+    setError("");
+    try {
+      const fb = await callApi({
+        action: "grade_answer",
+        question: currentQuestion,
+        answer: userAnswer,
+        step: { title: "テスト", groupTheme: "ドキュメント全体のテスト" },
+      }) as Feedback;
+      const earned = xpForScore(fb.score);
+      setGame((prev) => {
+        const updated = updateStreakAndDaily(prev);
+        const newXp = updated.xp + earned;
+        const next = { ...updated, xp: newXp, level: calcLevel(newXp) };
+        saveGame(next);
+        return next;
+      });
+      setXpAnim(earned);
+      setShowXpPop(true);
+      setTimeout(() => setShowXpPop(false), 2000);
+      setTestResults((prev) => [...prev, { question: currentQuestion, answer: userAnswer, feedback: fb }]);
+      setFeedback(fb);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "エラーが発生しました");
+    } finally {
+      setIsLoading(false);
+      setLoadingMsg("");
+    }
+  }
+
+  function handleTestNext() {
+    const nextIdx = testIdx + 1;
+    if (nextIdx >= testQuestions.length) {
+      setScreen("test_result");
+    } else {
+      setTestIdx(nextIdx);
+      setCurrentQuestion(testQuestions[nextIdx]);
+      setUserAnswer("");
+      setFeedback(null);
+    }
   }
 
   // ── Voice input ───────────────────────────────────────
@@ -423,7 +503,7 @@ export default function EnglishApp() {
   }
 
   // ─── Render ───────────────────────────────────────────
-  const currentStep = studyPlan?.steps[currentStepIndex];
+  const currentStep = studyPlan?.steps[activeStepIndex];
   const xpInLevel = game.xp % XP_PER_LEVEL;
   const xpPct = (xpInLevel / XP_PER_LEVEL) * 100;
   const dailyDone = Math.min(game.dailyCount, DAILY_GOAL);
@@ -435,8 +515,8 @@ export default function EnglishApp() {
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 sticky top-0 z-10" style={{ backgroundColor: PRIMARY }}>
         <div className="flex items-center gap-2">
-          {screen !== "upload" && screen !== "plan" && (
-            <button onClick={() => setScreen("plan")} className="mr-1 text-white/80 hover:text-white" aria-label="back">
+          {screen !== "upload" && screen !== "plan" && screen !== "test_result" && (
+            <button onClick={() => setScreen(screen === "test" ? "plan" : "plan")} className="mr-1 text-white/80 hover:text-white" aria-label="back">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
             </button>
           )}
@@ -593,28 +673,38 @@ export default function EnglishApp() {
             <div className="flex items-start justify-between gap-2">
               <div>
                 <h2 className="text-lg font-bold text-gray-800">{studyPlan.title}</h2>
-                <p className="text-sm text-gray-500 mt-1">学習ステップを選んで始めましょう</p>
+                <p className="text-sm text-gray-500 mt-1">カテゴリーの最初のステップはいつでも開始できます</p>
               </div>
               <button
-                onClick={() => { clearStudy(); setStudyPlan(null); setCurrentStepIndex(0); setQuestionIndex(0); setScreen("upload"); }}
+                onClick={() => { clearStudy(); setStudyPlan(null); setCompletedStepIds([]); setActiveStepIndex(0); setQuestionIndex(0); setScreen("upload"); }}
                 className="text-xs text-gray-400 underline flex-shrink-0 mt-1"
               >
                 最初からやり直す
               </button>
             </div>
 
-            {/* Step progress */}
+            {/* Progress + Test button */}
             <div className="rounded-2xl bg-white p-4" style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm font-bold text-gray-700">進行状況</span>
-                <span className="text-xs text-gray-400">{currentStepIndex}/{studyPlan.steps.length} ステップ</span>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-gray-700">進行状況</span>
+                  <span className="text-xs text-gray-400">{completedStepIds.length}/{studyPlan.steps.length} ステップ完了</span>
+                </div>
+                <button
+                  onClick={handleStartTest}
+                  disabled={isLoading || !wordText}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: "#FEF3C7", color: WARNING }}
+                >
+                  {isLoading && loadingMsg.includes("テスト") ? <SpinnerIcon /> : "🎓"} テストを受ける
+                </button>
               </div>
               <div className="flex gap-1">
-                {studyPlan.steps.map((_, i) => (
+                {studyPlan.steps.map((s, i) => (
                   <div
                     key={i}
                     className="flex-1 h-2 rounded-full transition-all duration-300"
-                    style={{ backgroundColor: i < currentStepIndex ? PRIMARY : i === currentStepIndex ? "#A5B4FC" : "#E5E7EB" }}
+                    style={{ backgroundColor: completedStepIds.includes(s.id) ? PRIMARY : "#E5E7EB" }}
                   />
                 ))}
               </div>
@@ -622,10 +712,13 @@ export default function EnglishApp() {
 
             {/* Step cards */}
             {studyPlan.steps.flatMap((step, i) => {
-              const done = i < currentStepIndex;
-              const current = i === currentStepIndex;
-              const locked = i > currentStepIndex;
-              const isNewGroup = !!(step.groupId && (i === 0 || step.groupId !== studyPlan.steps[i - 1].groupId));
+              const done = completedStepIds.includes(step.id);
+              const isGroupStart = i === 0 || step.groupId !== studyPlan.steps[i - 1].groupId;
+              const prevDone = !isGroupStart && completedStepIds.includes(studyPlan.steps[i - 1].id);
+              const unlocked = isGroupStart || prevDone;
+              const locked = !done && !unlocked;
+              const isActive = !done && unlocked && i === activeStepIndex;
+              const isNewGroup = !!(step.groupId && isGroupStart);
               const elements: React.ReactNode[] = [];
 
               if (isNewGroup && step.groupTheme) {
@@ -645,19 +738,19 @@ export default function EnglishApp() {
                   key={step.id}
                   className="rounded-3xl p-5"
                   style={{
-                    backgroundColor: done ? "#F0FDF4" : current ? "white" : "#F9FAFB",
-                    boxShadow: current ? "0 4px 16px rgba(79,70,229,0.12)" : "0 1px 4px rgba(0,0,0,0.06)",
-                    border: current ? "2px solid " + PRIMARY : "2px solid transparent",
-                    opacity: locked ? 0.6 : 1,
+                    backgroundColor: done ? "#F0FDF4" : unlocked ? "white" : "#F9FAFB",
+                    boxShadow: isActive ? "0 4px 16px rgba(79,70,229,0.12)" : "0 1px 4px rgba(0,0,0,0.06)",
+                    border: isActive ? "2px solid " + PRIMARY : "2px solid transparent",
+                    opacity: locked ? 0.5 : 1,
                   }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white font-bold text-sm"
-                        style={{ backgroundColor: done ? SUCCESS : current ? PRIMARY : "#9CA3AF" }}
+                        style={{ backgroundColor: done ? SUCCESS : unlocked ? PRIMARY : "#9CA3AF" }}
                       >
-                        {done ? "✓" : i + 1}
+                        {done ? "✓" : locked ? "🔒" : i + 1}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -669,23 +762,19 @@ export default function EnglishApp() {
                     </div>
                   </div>
 
-                  {current && step.input_example && (
+                  {unlocked && !done && step.input_example && (
                     <div className="mt-3 rounded-xl px-3 py-2.5" style={{ backgroundColor: PRIMARY_LIGHT }}>
                       <p className="text-xs text-gray-500 mb-1">シナリオ</p>
                       <p className="text-sm text-gray-700">{step.input_example}</p>
                     </div>
                   )}
 
-                  {(current || done) && step.tasks && step.tasks.length > 0 && (
+                  {done && step.tasks && step.tasks.length > 0 && (
                     <div className="mt-3 flex flex-col gap-1.5">
                       {step.tasks.map((task, ti) => (
                         <div key={ti} className="flex items-start gap-2">
-                          <div className="w-4 h-4 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center" style={{ backgroundColor: done ? "#DCFCE7" : PRIMARY_LIGHT }}>
-                            {done ? (
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill={SUCCESS}><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
-                            ) : (
-                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PRIMARY }} />
-                            )}
+                          <div className="w-4 h-4 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center" style={{ backgroundColor: "#DCFCE7" }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill={SUCCESS}><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
                           </div>
                           <span className="text-xs text-gray-600 leading-relaxed">{task}</span>
                         </div>
@@ -693,14 +782,14 @@ export default function EnglishApp() {
                     </div>
                   )}
 
-                  {current && !locked && (
+                  {unlocked && !done && (
                     <button
                       onClick={() => handleStartStep(i)}
                       disabled={isLoading}
                       className="mt-4 w-full py-3 rounded-xl text-white font-bold text-sm flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
                       style={{ backgroundColor: PRIMARY }}
                     >
-                      {isLoading ? <><SpinnerIcon />{loadingMsg}</> : <>🚀 このステップを始める</>}
+                      {isLoading && isActive ? <><SpinnerIcon />{loadingMsg}</> : <>🚀 このステップを始める</>}
                     </button>
                   )}
 
@@ -719,8 +808,8 @@ export default function EnglishApp() {
             {error && (
               <div className="rounded-2xl px-4 py-3 flex items-center gap-2" style={{ backgroundColor: "#FEE2E2" }}>
                 <span className="text-sm" style={{ color: DANGER }}>⚠ {error}</span>
-                <button onClick={() => { setError(""); handleStartStep(currentStepIndex); }} className="ml-auto text-xs font-bold underline" style={{ color: DANGER }}>
-                  再試行
+                <button onClick={() => setError("")} className="ml-auto text-xs font-bold underline" style={{ color: DANGER }}>
+                  閉じる
                 </button>
               </div>
             )}
@@ -734,7 +823,7 @@ export default function EnglishApp() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold px-2 py-1 rounded-full text-white" style={{ backgroundColor: PRIMARY }}>
-                  Step {currentStepIndex + 1}
+                  Step {activeStepIndex + 1}
                 </span>
                 <span className="text-xs text-gray-500">{currentStep.title}</span>
               </div>
@@ -964,14 +1053,14 @@ export default function EnglishApp() {
               </div>
             </div>
             <button
-              onClick={() => { setScreen("plan"); setCurrentStepIndex(0); setQuestionIndex(0); }}
+              onClick={() => { setScreen("plan"); setActiveStepIndex(0); setQuestionIndex(0); }}
               className="w-full py-4 rounded-2xl text-white font-bold text-base"
               style={{ backgroundColor: PRIMARY, boxShadow: "0 4px 12px rgba(79,70,229,0.3)" }}
             >
-              📚 もう一度学習する
+              📚 プランに戻る
             </button>
             <button
-              onClick={() => { clearStudy(); setScreen("upload"); setStudyPlan(null); setWordText(""); }}
+              onClick={() => { clearStudy(); setScreen("upload"); setStudyPlan(null); setWordText(""); setCompletedStepIds([]); }}
               className="w-full py-3 rounded-2xl font-semibold text-sm"
               style={{ backgroundColor: PRIMARY_LIGHT, color: PRIMARY }}
             >
@@ -979,6 +1068,145 @@ export default function EnglishApp() {
             </button>
           </div>
         )}
+
+        {/* ── Test Screen ───────────────────────────────── */}
+        {screen === "test" && currentQuestion && (
+          <div className="flex flex-col gap-4">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold px-2 py-1 rounded-full text-white" style={{ backgroundColor: WARNING }}>
+                  🎓 テスト
+                </span>
+                <span className="text-xs text-gray-500">問題 {testIdx + 1}/{testQuestions.length}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                {testQuestions.map((_, i) => (
+                  <div key={i} className="w-2.5 h-2.5 rounded-full"
+                    style={{ backgroundColor: i < testIdx ? SUCCESS : i === testIdx ? WARNING : "#E5E7EB" }} />
+                ))}
+              </div>
+            </div>
+
+            {/* Question card */}
+            <div className="rounded-3xl p-5 bg-white" style={{ boxShadow: "0 4px 16px rgba(217,119,6,0.12)" }}>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-bold text-gray-500">問題 {testIdx + 1}</span>
+                <DifficultyBadge d={currentQuestion.difficulty} />
+              </div>
+              <div className="rounded-xl px-3 py-2 mb-4" style={{ backgroundColor: "#FFFBEB" }}>
+                <p className="text-xs text-gray-400 mb-0.5">シチュエーション</p>
+                <p className="text-sm text-gray-700">{currentQuestion.context}</p>
+              </div>
+              <p className="text-lg font-bold text-gray-800 leading-relaxed">{currentQuestion.japanese}</p>
+            </div>
+
+            {/* Feedback (shown after grading) */}
+            {feedback && (
+              <div className="rounded-2xl p-4" style={{
+                backgroundColor: feedback.score === "correct" ? "#F0FDF4" : feedback.score === "partial" ? "#FFFBEB" : "#FEF2F2",
+                border: `1px solid ${feedback.score === "correct" ? SUCCESS : feedback.score === "partial" ? WARNING : DANGER}`,
+              }}>
+                <p className="font-bold text-sm mb-1" style={{ color: feedback.score === "correct" ? SUCCESS : feedback.score === "partial" ? WARNING : DANGER }}>
+                  {feedback.score === "correct" ? "✅ 正解！" : feedback.score === "partial" ? "👍 惜しい！" : "❌ 不正解"}
+                </p>
+                <p className="text-xs text-gray-600">{feedback.brief_explanation}</p>
+                <p className="text-xs font-medium mt-1 italic text-gray-700">例: &ldquo;{feedback.improved_example}&rdquo;</p>
+              </div>
+            )}
+
+            {/* Answer area */}
+            {!feedback && (
+              <div className="rounded-3xl p-4 bg-white" style={{ boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
+                <label className="text-xs font-bold text-gray-500 block mb-2">英語で答えてください</label>
+                <textarea
+                  value={userAnswer}
+                  onChange={(e) => setUserAnswer(e.target.value)}
+                  placeholder="Type your English answer here..."
+                  rows={4}
+                  className="w-full rounded-xl p-3 text-gray-800 text-base resize-none border transition-colors outline-none"
+                  style={{ borderColor: userAnswer ? WARNING : "#E5E7EB", backgroundColor: "#FFFBEB", fontSize: 16 }}
+                />
+                {hasSpeech && (
+                  <div className="flex items-center gap-2 mt-3">
+                    <button onClick={toggleRecording}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+                      style={{ backgroundColor: isRecording ? "#FEE2E2" : "#FEF3C7", color: isRecording ? DANGER : WARNING }}>
+                      <MicIcon recording={isRecording} />
+                      <span>{isRecording ? "録音中..." : "音声で入力"}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {error && (
+              <div className="rounded-2xl px-4 py-3" style={{ backgroundColor: "#FEE2E2" }}>
+                <span className="text-sm" style={{ color: DANGER }}>⚠ {error}</span>
+              </div>
+            )}
+
+            {!feedback ? (
+              <button onClick={handleTestSubmit} disabled={isLoading || !userAnswer.trim()}
+                className="w-full py-4 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-2"
+                style={{ backgroundColor: userAnswer.trim() ? WARNING : "#D1D5DB", boxShadow: userAnswer.trim() ? "0 4px 12px rgba(217,119,6,0.3)" : "none" }}>
+                {isLoading ? <><SpinnerIcon />{loadingMsg}</> : <>✏️ 答えを送信する</>}
+              </button>
+            ) : (
+              <button onClick={handleTestNext}
+                className="w-full py-4 rounded-2xl text-white font-bold text-base"
+                style={{ backgroundColor: WARNING, boxShadow: "0 4px 12px rgba(217,119,6,0.3)" }}>
+                {testIdx + 1 >= testQuestions.length ? "📊 結果を見る" : "➡️ 次の問題へ"}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ── Test Result Screen ────────────────────────── */}
+        {screen === "test_result" && (() => {
+          const total = testResults.length;
+          const score = testResults.reduce((s, r) =>
+            s + (r.feedback.score === "correct" ? 1 : r.feedback.score === "partial" ? 0.5 : 0), 0);
+          const pct = total > 0 ? Math.round((score / total) * 100) : 0;
+          const rank = pct >= 90 ? { emoji: "🏆", label: "マスター！", color: SUCCESS }
+                     : pct >= 70 ? { emoji: "🌟", label: "よくできました", color: PRIMARY }
+                     : pct >= 50 ? { emoji: "📚", label: "もう少し！", color: WARNING }
+                     : { emoji: "💪", label: "練習あるのみ！", color: DANGER };
+          return (
+            <div className="flex flex-col gap-4">
+              <div className="rounded-3xl p-6 text-center" style={{ backgroundColor: "white", boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}>
+                <div className="text-6xl mb-3">{rank.emoji}</div>
+                <h2 className="text-2xl font-bold mb-1" style={{ color: rank.color }}>{rank.label}</h2>
+                <p className="text-5xl font-bold mt-2" style={{ color: rank.color }}>{pct}%</p>
+                <p className="text-sm text-gray-400 mt-1">{score}/{total} 正解</p>
+              </div>
+
+              {/* Per-question breakdown */}
+              <div className="flex flex-col gap-2">
+                {testResults.map((r, i) => (
+                  <div key={i} className="rounded-2xl p-3 bg-white flex items-start gap-3" style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+                    <span className="text-lg flex-shrink-0">
+                      {r.feedback.score === "correct" ? "✅" : r.feedback.score === "partial" ? "👍" : "❌"}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-gray-700">{r.question.japanese}</p>
+                      <p className="text-xs text-gray-400 mt-0.5 italic">&ldquo;{r.answer}&rdquo;</p>
+                      {r.feedback.score !== "correct" && (
+                        <p className="text-xs mt-0.5" style={{ color: PRIMARY }}>→ {r.feedback.improved_example}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button onClick={() => setScreen("plan")}
+                className="w-full py-4 rounded-2xl text-white font-bold text-base"
+                style={{ backgroundColor: PRIMARY, boxShadow: "0 4px 12px rgba(79,70,229,0.3)" }}>
+                📚 プランに戻る
+              </button>
+            </div>
+          );
+        })()}
 
       </main>
 
