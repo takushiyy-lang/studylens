@@ -220,6 +220,42 @@ Scoring rules:
       return Response.json(parsed);
     }
 
+    // Generate test questions covering all document content
+    if (action === "generate_test") {
+      const { documentText, count = 5 } = body as { documentText: string; count?: number };
+      const res = await claude.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 2048,
+        system: `You are an English teacher creating a comprehensive test. Return JSON ONLY, no explanation.`,
+        messages: [{
+          role: "user",
+          content: `Create ${count} diverse test questions covering DIFFERENT expressions from across the document below.
+
+Document:
+${documentText.slice(0, 4000)}
+
+Rules:
+- Each question must test a DIFFERENT expression or usage — spread coverage across the whole document
+- Difficulty: "medium" (apply level — write a natural English sentence using the expression)
+- ONLY use expressions found in the document
+- No hints — this is a test
+- Vary the topics so all parts of the document are represented
+
+Return this exact JSON:
+{
+  "questions": [
+    { "id": "t1", "japanese": "状況説明（50文字以内）", "hint": "", "context": "Brief English context (1 sentence)", "difficulty": "medium" },
+    { "id": "t2", "japanese": "...", "hint": "", "context": "...", "difficulty": "medium" }
+  ]
+}`,
+        }],
+      });
+      const raw = res.content[0].type === "text" ? res.content[0].text : "";
+      const parsed = extractJson(raw) as { questions?: unknown[] } | null;
+      if (!parsed?.questions) return Response.json({ error: "テスト生成に失敗しました" }, { status: 500 });
+      return Response.json(parsed);
+    }
+
     return Response.json({ error: "Unknown action" }, { status: 400 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
