@@ -887,24 +887,6 @@ export default function EnglishApp() {
                 }}
               />
 
-              {/* Voice input button */}
-              {hasSpeech && (
-                <div className="flex items-center gap-2 mt-3">
-                  <button
-                    onClick={toggleRecording}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all"
-                    style={{
-                      backgroundColor: isRecording ? "#FEE2E2" : "#EEF2FF",
-                      color: isRecording ? DANGER : PRIMARY,
-                      animation: isRecording ? "pulse 1.5s infinite" : "none",
-                    }}
-                  >
-                    <MicIcon recording={isRecording} />
-                    <span>{isRecording ? "録音中... タップで停止" : "音声で入力"}</span>
-                    {isRecording && <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: DANGER }} />}
-                  </button>
-                </div>
-              )}
             </div>
 
             {error && (
@@ -1135,16 +1117,6 @@ export default function EnglishApp() {
                   className="w-full rounded-xl p-3 text-gray-800 text-base resize-none border transition-colors outline-none"
                   style={{ borderColor: userAnswer ? WARNING : "#E5E7EB", backgroundColor: "#FFFBEB", fontSize: 16 }}
                 />
-                {hasSpeech && (
-                  <div className="flex items-center gap-2 mt-3">
-                    <button onClick={toggleRecording}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-                      style={{ backgroundColor: isRecording ? "#FEE2E2" : "#FEF3C7", color: isRecording ? DANGER : WARNING }}>
-                      <MicIcon recording={isRecording} />
-                      <span>{isRecording ? "録音中..." : "音声で入力"}</span>
-                    </button>
-                  </div>
-                )}
               </div>
             )}
 

@@ -193,7 +193,7 @@ Return this exact JSON:
       const res = await claude.messages.create({
         model: "claude-sonnet-4-20250514",
         max_tokens: 1024,
-        system: `You are a friendly English teacher grading student composition. Evaluate on meaning, grammar, and naturalness — NOT exact wording. Be encouraging but constructive. Return JSON ONLY.`,
+        system: `You are a friendly English teacher grading student composition. Evaluate on meaning, grammar, and naturalness — NOT exact wording. Be encouraging but constructive. Return JSON ONLY. Write all feedback fields (good_points, corrections, improved_example, brief_explanation) in Japanese.`,
         messages: [
           {
             role: "user",
