@@ -802,9 +802,19 @@ export default function EnglishApp() {
                   )}
 
                   {done && (
-                    <div className="mt-3 flex items-center gap-2">
-                      <CheckIcon />
-                      <span className="text-sm font-medium" style={{ color: SUCCESS }}>完了！</span>
+                    <div className="mt-3 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <CheckIcon />
+                        <span className="text-sm font-medium" style={{ color: SUCCESS }}>完了！</span>
+                      </div>
+                      <button
+                        onClick={() => handleStartStep(i)}
+                        disabled={isLoading}
+                        className="px-3 py-1.5 rounded-xl text-xs font-bold transition-opacity hover:opacity-80"
+                        style={{ backgroundColor: "#F0FDF4", color: SUCCESS, border: "1px solid #BBF7D0" }}
+                      >
+                        🔄 もう一度やる
+                      </button>
                     </div>
                   )}
                 </div>
