@@ -209,6 +209,7 @@ export default function EnglishApp() {
   const [showXpPop, setShowXpPop] = useState(false);
   const [hasSpeech, setHasSpeech] = useState(false);
   const [activePhase, setActivePhase] = useState<string | undefined>(undefined);
+  const [stepQuestionsAsked, setStepQuestionsAsked] = useState<string[]>([]);
   // Test state
   const [testQuestions, setTestQuestions] = useState<Question[]>([]);
   const [testIdx, setTestIdx] = useState(0);
@@ -289,7 +290,7 @@ export default function EnglishApp() {
   }
 
   // ── Generate question ─────────────────────────────────
-  const generateQuestion = useCallback(async (stepIdx: number, qIdx: number, phaseOverride?: string) => {
+  const generateQuestion = useCallback(async (stepIdx: number, qIdx: number, phaseOverride?: string, prevQuestions?: string[]) => {
     if (!studyPlan) return;
     setIsLoading(true);
     setLoadingMsg("問題を生成中...");
@@ -303,9 +304,11 @@ export default function EnglishApp() {
         step: stepToUse,
         questionIndex: qIdx,
         documentText: wordText,
+        previousQuestions: prevQuestions ?? [],
       }) as Question;
       setCurrentQuestion(q);
       setActivePhase(usedPhase);
+      setStepQuestionsAsked((prev) => [...prev, q.japanese]);
       setUserAnswer("");
       setFeedback(null);
       setScreen("question");
@@ -386,7 +389,7 @@ export default function EnglishApp() {
     } else {
       setQuestionIndex(nextQIdx);
       setActivePhase(undefined);
-      generateQuestion(activeStepIndex, nextQIdx);
+      generateQuestion(activeStepIndex, nextQIdx, undefined, stepQuestionsAsked);
     }
   }
 
@@ -394,7 +397,8 @@ export default function EnglishApp() {
     setActiveStepIndex(stepIdx);
     setQuestionIndex(0);
     setActivePhase(undefined);
-    generateQuestion(stepIdx, 0);
+    setStepQuestionsAsked([]);
+    generateQuestion(stepIdx, 0, undefined, []);
   }
 
   const PHASE_ORDER = ["memorize", "confirm", "apply", "master"] as const;
@@ -402,7 +406,7 @@ export default function EnglishApp() {
   function handleEasierQuestion() {
     const phaseIdx = PHASE_ORDER.indexOf((activePhase ?? "apply") as typeof PHASE_ORDER[number]);
     const easierPhase = phaseIdx > 0 ? PHASE_ORDER[phaseIdx - 1] : PHASE_ORDER[0];
-    generateQuestion(activeStepIndex, questionIndex, easierPhase);
+    generateQuestion(activeStepIndex, questionIndex, easierPhase, stepQuestionsAsked);
   }
 
   // ── Test flow ─────────────────────────────────────────

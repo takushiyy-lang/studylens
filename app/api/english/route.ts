@@ -118,22 +118,27 @@ Return ONLY this compact JSON (repeat the 4-step pattern for every group):
 
     // Generate a composition question for a step
     if (action === "generate_question") {
-      const { step, questionIndex, documentText } = body as {
+      const { step, questionIndex, documentText, previousQuestions } = body as {
         step: { id: string; phase?: string; groupTheme?: string; title: string; goal?: string; input_example?: string; tasks?: string[] };
         questionIndex: number;
         documentText?: string;
+        previousQuestions?: string[]; // Japanese prompts of already-asked questions in this step
       };
 
       const phase = step.phase ?? "apply";
       const phaseInstructions: Record<string, string> = {
-        memorize: `MEMORIZE phase: extremely easy — ask the user to type out one specific phrase exactly as it appears in the document. Put that exact phrase in the hint field. difficulty: "easy".`,
-        confirm:  `CONFIRM phase: ask the user to recall a phrase from memory without showing it. Give a strong Japanese context clue. difficulty: "easy".`,
-        apply:    `APPLY phase: ask the user to write a natural English sentence using expressions from the document in a realistic situation. difficulty: "medium".`,
-        master:   `MASTER phase: ask the user to express an idea freely and naturally — no hints, no memorized phrases. difficulty: "hard".`,
+        memorize: `MEMORIZE phase: Show the target phrase in the hint field. Ask the user to write ONE simple sentence using that exact phrase in a concrete everyday situation. The sentence must use the phrase meaningfully — not just copy it alone. difficulty: "easy".`,
+        confirm:  `CONFIRM phase: Do NOT show the phrase in the hint (hint must be empty string ""). Give a Japanese situation and ask the user to write a sentence that would naturally include the appropriate phrase. Test recall through sentence production. difficulty: "easy".`,
+        apply:    `APPLY phase: Give a realistic, specific situation. Ask the user to write a natural English sentence or short response using the appropriate expression. No hints. difficulty: "medium".`,
+        master:   `MASTER phase: Ask the user to express an idea freely and naturally on this topic — no memorized phrases, no hints. Evaluate fluency and naturalness. difficulty: "hard".`,
       };
 
       const docSection = documentText
         ? `\n\nSource document — base ALL questions STRICTLY on expressions found here only:\n${documentText.slice(0, 4000)}`
+        : "";
+
+      const avoidSection = previousQuestions?.length
+        ? `\n\nIMPORTANT: The following questions were already asked in this step — create a COMPLETELY DIFFERENT scenario:\n${previousQuestions.map((q, i) => `Q${i + 1}: ${q}`).join("\n")}`
         : "";
 
       const extraContext = [
@@ -149,18 +154,18 @@ Return ONLY this compact JSON (repeat the 4-step pattern for every group):
         messages: [
           {
             role: "user",
-            content: `Create English composition question #${questionIndex + 1} for this step.
+            content: `Create English composition question #${questionIndex + 1} for this step. Each question must test a DIFFERENT situation/scenario than the others.
 
 Step: ${step.title}
 Group theme: ${step.groupTheme ?? ""}
-${extraContext}${docSection}
+${extraContext}${avoidSection}${docSection}
 
 Return this exact JSON:
 {
   "id": "q_${step.id}_${questionIndex}",
-  "japanese": "日本語で状況や課題を説明（わかりやすく、50文字以内）",
-  "hint": "${phase === "memorize" ? "Show the exact phrase from the document to type here" : phase === "confirm" ? "Optional very short hint or empty string" : ""}",
-  "context": "Brief English context (1 sentence)",
+  "japanese": "日本語で状況や課題を説明（わかりやすく、具体的に、50文字以内）",
+  "hint": "${phase === "memorize" ? "The exact target phrase from the document" : ""}",
+  "context": "Brief English context describing the specific situation (1 sentence)",
   "difficulty": "${phase === "memorize" || phase === "confirm" ? "easy" : phase === "apply" ? "medium" : "hard"}"
 }`,
           },
