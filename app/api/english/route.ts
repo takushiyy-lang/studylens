@@ -118,17 +118,23 @@ Return ONLY this compact JSON (repeat the 4-step pattern for every group):
 
     // Generate a composition question for a step
     if (action === "generate_question") {
-      const { step, questionIndex, documentText, previousQuestions } = body as {
+      const { step, questionIndex, documentText, previousQuestions, memorizeStepTitle } = body as {
         step: { id: string; phase?: string; groupTheme?: string; title: string; goal?: string; input_example?: string; tasks?: string[] };
         questionIndex: number;
         documentText?: string;
-        previousQuestions?: string[]; // Japanese prompts of already-asked questions in this step
+        previousQuestions?: string[];
+        memorizeStepTitle?: string; // Title of the memorize step in the same group
       };
 
       const phase = step.phase ?? "apply";
+
+      const confirmInstruction = memorizeStepTitle
+        ? `CONFIRM phase: The user just memorized the content from "${memorizeStepTitle}". Ask a question that tests recall of EXACTLY those phrases/expressions — no other content. Give a Japanese situation where the user must recall and write a sentence using one of those specific phrases. hint must be empty string "". difficulty: "easy".`
+        : `CONFIRM phase: Test recall of the phrases from the MEMORIZE step of the same group. Give a Japanese situation and ask the user to write a sentence using the appropriate memorized phrase. hint must be empty string "". difficulty: "easy".`;
+
       const phaseInstructions: Record<string, string> = {
         memorize: `MEMORIZE phase: Show the target phrase in the hint field. Ask the user to write ONE simple sentence using that exact phrase in a concrete everyday situation. The sentence must use the phrase meaningfully — not just copy it alone. difficulty: "easy".`,
-        confirm:  `CONFIRM phase: Do NOT show the phrase in the hint (hint must be empty string ""). Give a Japanese situation and ask the user to write a sentence that would naturally include the appropriate phrase. Test recall through sentence production. difficulty: "easy".`,
+        confirm:  confirmInstruction,
         apply:    `APPLY phase: Give a realistic, specific situation. Ask the user to write a natural English sentence or short response using the appropriate expression. No hints. difficulty: "medium".`,
         master:   `MASTER phase: Ask the user to express an idea freely and naturally on this topic — no memorized phrases, no hints. Evaluate fluency and naturalness. difficulty: "hard".`,
       };
